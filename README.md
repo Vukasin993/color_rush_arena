@@ -25,15 +25,105 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
+# Color Rush Arena - Firebase Setup
 
-When you're ready, run:
+## 🔥 Firebase Authentication Setup
+
+This app uses Firebase Anonymous Authentication with Zustand state management.
+
+### Step 1: Firebase Project Setup
+
+1. Go to [Firebase Console](https://console.firebase.google.com)
+2. Create a new project or select existing one
+3. Enable **Authentication** → **Sign-in method** → **Anonymous** ✅
+4. Go to **Project Settings** → **General** → **Your apps**
+5. Add a **Web app** and copy the config
+
+### Step 2: Environment Variables
+
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Fill in your Firebase config values in `.env`:
+   ```env
+   EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key_here
+   EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+   EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+   EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+   EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+   EXPO_PUBLIC_FIREBASE_APP_ID=1:your_messaging_sender_id:web:your_app_id
+   ```
+
+### Step 3: Run the App
 
 ```bash
-npm run reset-project
+npm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🏗️ Architecture
+
+```
+src/
+├── firebase/
+│   └── config.ts          # Firebase initialization
+└── store/
+    └── useAuthStore.ts    # Zustand auth store with persistence
+```
+
+## 🔐 Authentication Features
+
+- ✅ **Anonymous sign-in** on app start
+- ✅ **Persistent auth state** using AsyncStorage
+- ✅ **Auto re-authentication** on app restart
+- ✅ **Zustand store** for global auth state
+- ✅ **useAuth() hook** for easy access in components
+
+## 🎯 Usage in Components
+
+```tsx
+import { useAuth } from './src/store/useAuthStore';
+
+function MyComponent() {
+  const { user, isAuthenticated, signInAnonymous, signOut } = useAuth();
+  
+  return (
+    <View>
+      {isAuthenticated ? (
+        <Text>Welcome, User ID: {user?.uid}</Text>
+      ) : (
+        <Button onPress={signInAnonymous}>Sign In</Button>
+      )}
+    </View>
+  );
+}
+```
+
+## 📱 Console Output
+
+When authentication works correctly, you'll see:
+```
+🔥 Firebase app initialized
+🔐 Firebase Auth initialized
+✅ Anonymous login successful
+```
+
+## 🚀 Get Started
+
+1. Install dependencies
+
+   ```bash
+   npm install
+   ```
+
+2. Set up Firebase (see steps above)
+
+3. Start the app
+
+   ```bash
+    npx expo start
+   ```
 
 ## Learn more
 

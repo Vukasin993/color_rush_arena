@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "768614624509",
+    "project_id": "colorrusharena",
+    "storage_bucket": "colorrusharena.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:768614624509:android:fade9616b8d620d5b3e294",
+        "android_client_info": {
+          "package_name": "com.vukasin93.colorrusharena"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCT8DgEY8Gx9LA5Qa0ccCBTNoA3cZ3Nbtg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

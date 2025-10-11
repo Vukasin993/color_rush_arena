@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vukasin93.colorrusharena"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +20,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.vukasin93.colorrusharena"
     },
     "web": {
       "output": "static",
@@ -38,11 +40,25 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-font",
+      "react-native-google-mobile-ads"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "extra": {
+        "firebase": {
+          "apiKey": "AIzaSyCT8DgEY8Gx9LA5Qa0ccCBTNoA3cZ3Nbtg",
+          "authDomain": "colorrusharena.firebaseapp.com",
+          "projectId": "colorrusharena",
+          "storageBucket": "colorrusharena.firebasestorage.app",
+          "messagingSenderId": "768614624509",
+          "appId": "1:768614624509:android:fade9616b8d620d5b3e294"
+        }
+      }
     }
   }
 }
