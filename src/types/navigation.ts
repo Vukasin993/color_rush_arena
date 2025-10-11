@@ -3,6 +3,7 @@ export type RootStackParamList = {
   GameScreen: { gameType: string };
   LeaderboardScreen: undefined;
   ColorMatchGame: undefined;
+  ReactionGame: undefined;
   GameOverScreen: {
     gameType: 'colorMatch' | 'reactionTap' | 'colorSnake';
     score: number;

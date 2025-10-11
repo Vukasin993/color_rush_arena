@@ -7,6 +7,7 @@ import {
   ScrollView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -96,7 +97,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
       
       {/* Header */}
@@ -212,7 +213,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
           <Text style={styles.resetButtonText}>Clear All Scores</Text>
         </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -393,7 +394,7 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 50,
     left: 20,
     right: 20,
     borderRadius: 15,

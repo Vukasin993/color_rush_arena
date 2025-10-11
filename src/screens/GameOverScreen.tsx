@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -123,7 +124,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ navigation, rout
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
       
       <Animated.View style={[styles.content, fadeStyle]}>
@@ -218,7 +219,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ navigation, rout
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>
-    </View>
+    </SafeAreaView>
   );
 };
 

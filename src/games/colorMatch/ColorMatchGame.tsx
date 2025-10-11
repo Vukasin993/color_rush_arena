@@ -7,6 +7,7 @@ import {
   StatusBar,
   Vibration,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -183,7 +184,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({ navigation }) =>
 
   if (!gameStarted) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
         
         {/* Back Button */}
@@ -228,12 +229,12 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({ navigation }) =>
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
       
       {/* Correct Answer Overlay */}
@@ -315,7 +316,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({ navigation }) =>
           <Text style={styles.pauseButtonText}>Pause</Text>
         </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -346,7 +347,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 50,
+    top: 20,
     left: 20,
     zIndex: 1001,
     borderRadius: 25,
@@ -439,7 +440,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 20,
   },
   timerContainer: {
@@ -559,7 +560,7 @@ const styles = StyleSheet.create({
   },
   pauseButton: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 20,
     right: 20,
     borderRadius: 15,
     elevation: 8,

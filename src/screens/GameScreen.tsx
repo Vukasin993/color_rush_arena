@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -75,7 +76,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
       
       {/* Back Button */}
@@ -126,8 +127,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
               if (gameType === 'colorMatch') {
                 navigation.navigate('ColorMatchGame');
               } else if (gameType === 'reactionTap') {
-                // TODO: Navigate to Reaction Tap game
-                console.log('Navigate to Reaction Tap');
+                navigation.navigate('ReactionGame');
               }
             }}
           >
@@ -149,7 +149,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 50,
+    top: 20,
     left: 20,
     zIndex: 1000,
     borderRadius: 25,
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
-    paddingTop: 120,
+    paddingTop: 90,
   },
   header: {
     alignItems: 'center',

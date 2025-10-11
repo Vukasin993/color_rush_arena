@@ -7,6 +7,7 @@ import {
   ScrollView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -90,7 +91,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
       
       {/* Floating Leaderboard Button */}
@@ -168,8 +169,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </View>
           </View>
         </View>
+        
+        {/* Bottom safe area spacer */}
+        <View style={styles.bottomSpacer} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -194,17 +198,33 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 40,
   },
-  floatingButton: {
+  leaderboardButton: {
     position: 'absolute',
-    top: 50,
+    top: 20,
     right: 20,
-    zIndex: 1000,
+    width: 50,
+    height: 50,
     borderRadius: 25,
     elevation: 8,
-    shadowColor: '#FF006E',
+    shadowColor: '#FFB800',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
+    zIndex: 1000,
+  },
+  floatingButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    elevation: 8,
+    shadowColor: '#FFB800',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    zIndex: 1000,
   },
   floatingButtonGradient: {
     width: 50,
@@ -281,6 +301,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 160,
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   cardDisabled: {
     opacity: 0.6,
@@ -305,6 +327,7 @@ const styles = StyleSheet.create({
     color: '#B8B8D1',
     textAlign: 'center',
     lineHeight: 20,
+    paddingHorizontal: 8,
   },
   comingSoonBadge: {
     backgroundColor: 'rgba(255, 184, 0, 0.2)',
@@ -349,5 +372,8 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 4,
     textAlign: 'center',
+  },
+  bottomSpacer: {
+    height: 30,
   },
 });

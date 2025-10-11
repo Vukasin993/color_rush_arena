@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth, initializeAuthListener } from './src/store/useAuthStore';
@@ -11,6 +12,7 @@ import { GameScreen } from './src/screens/GameScreen';
 import { LeaderboardScreen } from './src/screens/LeaderboardScreen';
 import { GameOverScreen } from './src/screens/GameOverScreen';
 import { ColorMatchGame } from './src/games/colorMatch/ColorMatchGame';
+import { ReactionGame } from './src/games/reactionTap/ReactionGame';
 
 // Placeholder screens - replace with your actual screens
 const ProfileScreen = () => {
@@ -114,7 +116,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <SafeAreaProvider>
       <StatusBar style="light" backgroundColor="#0F0F1B" />
       <NavigationContainer>
         <Stack.Navigator
@@ -139,12 +141,16 @@ export default function App() {
             component={ColorMatchGame} 
           />
           <Stack.Screen 
+            name="ReactionGame" 
+            component={ReactionGame} 
+          />
+          <Stack.Screen 
             name="GameOverScreen" 
             component={GameOverScreen} 
           />
         </Stack.Navigator>
       </NavigationContainer>
-    </>
+    </SafeAreaProvider>
   );
 }
 
