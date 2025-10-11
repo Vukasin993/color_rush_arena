@@ -122,6 +122,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
             style={styles.actionButton}
             activeOpacity={0.8}
             disabled={gameType === 'colorSnake'}
+            onPress={() => {
+              if (gameType === 'colorMatch') {
+                navigation.navigate('ColorMatchGame');
+              } else if (gameType === 'reactionTap') {
+                // TODO: Navigate to Reaction Tap game
+                console.log('Navigate to Reaction Tap');
+              }
+            }}
           >
             <LinearGradient
               colors={gameType === 'colorSnake' ? ['#6B7280', '#4B5563'] : ['#00FFC6', '#00D4AA']}

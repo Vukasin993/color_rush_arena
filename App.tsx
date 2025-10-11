@@ -9,6 +9,8 @@ import { useAuth, initializeAuthListener } from './src/store/useAuthStore';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { GameScreen } from './src/screens/GameScreen';
 import { LeaderboardScreen } from './src/screens/LeaderboardScreen';
+import { GameOverScreen } from './src/screens/GameOverScreen';
+import { ColorMatchGame } from './src/games/colorMatch/ColorMatchGame';
 
 // Placeholder screens - replace with your actual screens
 const ProfileScreen = () => {
@@ -131,6 +133,14 @@ export default function App() {
           <Stack.Screen 
             name="LeaderboardScreen" 
             component={LeaderboardScreen} 
+          />
+          <Stack.Screen 
+            name="ColorMatchGame" 
+            component={ColorMatchGame} 
+          />
+          <Stack.Screen 
+            name="GameOverScreen" 
+            component={GameOverScreen} 
           />
         </Stack.Navigator>
       </NavigationContainer>

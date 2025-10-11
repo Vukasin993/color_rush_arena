@@ -14,10 +14,11 @@ import {
   Orbitron_400Regular,
   Orbitron_700Bold,
 } from '@expo-google-fonts/orbitron';
+import { useGame } from '../store/useGameStore';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types/navigation';
 
-interface LeaderboardScreenProps {
-  navigation: any;
-}
+type LeaderboardScreenProps = NativeStackScreenProps<RootStackParamList, 'LeaderboardScreen'>;
 
 interface ScoreEntry {
   id: string;
@@ -27,18 +28,34 @@ interface ScoreEntry {
   emoji: string;
 }
 
-const mockScores: ScoreEntry[] = [
-  { id: '1', game: 'Color Match', score: 2450, date: '2024-01-15', emoji: '🎨' },
-  { id: '2', game: 'Reaction Tap', score: 1890, date: '2024-01-14', emoji: '⚡' },
-  { id: '3', game: 'Color Match', score: 1750, date: '2024-01-13', emoji: '🎨' },
-  { id: '4', game: 'Reaction Tap', score: 1620, date: '2024-01-12', emoji: '⚡' },
-  { id: '5', game: 'Color Match', score: 1480, date: '2024-01-11', emoji: '🎨' },
-  { id: '6', game: 'Reaction Tap', score: 1350, date: '2024-01-10', emoji: '⚡' },
-  { id: '7', game: 'Color Match', score: 1200, date: '2024-01-09', emoji: '🎨' },
-  { id: '8', game: 'Reaction Tap', score: 1100, date: '2024-01-08', emoji: '⚡' },
-];
-
 export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation }) => {
+  const { colorMatchStats, reactionTapStats, totalXP, totalGames, bestScore } = useGame();
+  
+  // Combine and sort all game history
+  const allScores: ScoreEntry[] = [
+    ...colorMatchStats.gameHistory.map(game => ({
+      id: game.id,
+      game: 'Color Match',
+      score: game.score,
+      date: game.date.split('T')[0],
+      emoji: '🎨',
+    })),
+    ...reactionTapStats.gameHistory.map(game => ({
+      id: game.id,
+      game: 'Reaction Tap', 
+      score: game.score,
+      date: game.date.split('T')[0],
+      emoji: '⚡',
+    })),
+  ].sort((a, b) => b.score - a.score);
+
+  // Add some mock data if no games played yet
+  const mockScores: ScoreEntry[] = allScores.length === 0 ? [
+    { id: '1', game: 'Color Match', score: 0, date: '2024-01-15', emoji: '🎨' },
+    { id: '2', game: 'Reaction Tap', score: 0, date: '2024-01-14', emoji: '⚡' },
+  ] : [];
+  
+  const displayScores = allScores.length > 0 ? allScores : mockScores;
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
     Orbitron_700Bold,
@@ -103,13 +120,13 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
       </LinearGradient>
 
       {/* Stats Cards */}
-      <View style={styles.statsContainer}>
+        <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <LinearGradient
             colors={['rgba(0, 255, 198, 0.2)', 'rgba(0, 212, 170, 0.1)']}
             style={styles.statCardGradient}
           >
-            <Text style={styles.statNumber}>8</Text>
+            <Text style={styles.statNumber}>{totalGames}</Text>
             <Text style={styles.statLabel}>Total Games</Text>
           </LinearGradient>
         </View>
@@ -119,7 +136,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
             colors={['rgba(255, 184, 0, 0.2)', 'rgba(255, 159, 10, 0.1)']}
             style={styles.statCardGradient}
           >
-            <Text style={styles.statNumber}>2450</Text>
+            <Text style={styles.statNumber}>{bestScore}</Text>
             <Text style={styles.statLabel}>Best Score</Text>
           </LinearGradient>
         </View>
@@ -129,13 +146,11 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
             colors={['rgba(142, 45, 226, 0.2)', 'rgba(74, 0, 224, 0.1)']}
             style={styles.statCardGradient}
           >
-            <Text style={styles.statNumber}>1562</Text>
-            <Text style={styles.statLabel}>Average</Text>
+            <Text style={styles.statNumber}>{totalXP}</Text>
+            <Text style={styles.statLabel}>Total XP</Text>
           </LinearGradient>
         </View>
-      </View>
-
-      {/* Leaderboard List */}
+      </View>      {/* Leaderboard List */}
       <View style={styles.listContainer}>
         <Text style={styles.listTitle}>All Time Best</Text>
         
@@ -144,7 +159,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {mockScores.map((score, index) => (
+          {displayScores.map((score, index) => (
             <View key={score.id} style={styles.scoreItem}>
               <LinearGradient
                 colors={[
