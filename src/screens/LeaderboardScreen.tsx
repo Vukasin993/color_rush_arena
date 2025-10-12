@@ -32,18 +32,20 @@ interface ScoreEntry {
   emoji: string;
   level: string;
   userId: string;
+  username?: string;
 }
 
 export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation, route }) => {
-  const { gameType, level } = route.params || {};
-  const { colorMatchStats, reactionTapStats, totalXP, totalGames, bestScore } = useGame();
+  const { gameType } = route.params || {};
+  const { colorMatchStats, reactionTapStats } = useGame();
   const [firebaseScores, setFirebaseScores] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedGame, setSelectedGame] = useState<'colorMatch' | 'reactionTap' | 'all'>(
-    (gameType === 'colorSnake') ? 'all' : (gameType || 'all')
+  const [selectedGame, setSelectedGame] = useState<'colorMatch' | 'reactionTap'>(
+    (gameType === 'colorMatch' || gameType === 'reactionTap') ? gameType : 'colorMatch'
   );
-  const [selectedLevel, setSelectedLevel] = useState<'easy' | 'medium' | 'hard'>(level || 'easy');
+  const [selectedLevel, setSelectedLevel] = useState<'easy' | 'medium' | 'hard'>('easy');
+
   
   // Fetch scores from Firebase
   const fetchScores = useCallback(async (isRefreshing = false) => {
@@ -54,16 +56,8 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
     }
     
     try {
-      let scores: LeaderboardEntry[] = [];
-      
-      if (selectedGame === 'all') {
-        // Get top players by total XP
-        scores = await leaderboardService.getTopPlayersByXP(100);
-      } else {
-        // Get top players by specific game score
-        scores = await leaderboardService.getTopPlayersByGameScore(selectedGame as 'colorMatch' | 'reactionTap', 100);
-      }
-      
+      // Get top players by specific game score
+      const scores = await leaderboardService.getTopPlayersByGameScore(selectedGame, 100);
       setFirebaseScores(scores);
     } catch (error) {
       console.error('Failed to fetch leaderboard:', error);
@@ -73,7 +67,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedGame]);
+  }, [selectedGame, selectedLevel]);
 
   useEffect(() => {
     fetchScores();
@@ -83,31 +77,34 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
     fetchScores(true);
   };
 
-  // Convert Firebase scores to display format
+  // Convert Firebase scores to display format - Best scores for selected level
   const getDisplayScores = (): ScoreEntry[] => {
     if (firebaseScores.length > 0) {
-      return firebaseScores.map((player, index) => {
-        let score;
-        
-        if (selectedGame === 'all') {
-          // Show total XP for "all games" view
-          score = player.totalXP;
-        } else {
-          // Show best score for specific game
-          const gameStats = selectedGame === 'colorMatch' ? player.colorMatchStats : player.reactionTapStats;
-          score = gameStats.bestScore;
-        }
-        
-        return {
-          id: player.uid + '_' + index,
-          game: selectedGame === 'all' ? 'Total XP' : (selectedGame === 'colorMatch' ? 'Color Match' : 'Reaction Tap'),
-          score: score,
-          date: new Date().toISOString().split('T')[0], // Current date since we don't have specific game date
-          emoji: selectedGame === 'all' ? '🏆' : (selectedGame === 'colorMatch' ? '🎨' : '⚡'),
-          level: 'all', // Not level-specific anymore
-          userId: player.uid,
-        };
-      });
+      const gameStats = selectedGame === 'colorMatch' ? 'colorMatchStats' : 'reactionTapStats';
+      
+      // Best Score ranking - filter by selected level
+      const levelProperty = `${selectedLevel}Completed` as keyof typeof firebaseScores[0]['colorMatchStats'];
+      const bestScoreRanking = [...firebaseScores]
+        .filter(player => {
+          const stats = player[gameStats];
+          return stats && stats.totalGames > 0 && stats[levelProperty] > 0;
+        })
+        .sort((a, b) => b[gameStats].bestScore - a[gameStats].bestScore)
+        .slice(0, 100);
+      
+      // Create entries for the selected level
+      const allEntries: ScoreEntry[] = bestScoreRanking.map((player, index) => ({
+        id: `best_${selectedLevel}_${player.uid}_${index}`,
+        game: `${selectedGame === 'colorMatch' ? 'Color Match' : 'Reaction Tap'} - ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)} Level`,
+        score: player[gameStats].bestScore,
+        date: new Date().toISOString().split('T')[0],
+        emoji: selectedGame === 'colorMatch' ? '🎨' : '⚡',
+        level: `${selectedLevel === 'easy' ? '🟢' : selectedLevel === 'medium' ? '🟡' : '🔴'} ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)}`,
+        userId: player.uid,
+        username: player.username,
+      }));
+      
+      return allEntries;
     }
     
     // Fall back to local scores
@@ -201,9 +198,8 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
       </LinearGradient>
 
       <View style={styles.filterContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabs}>
+        <View style={styles.filterTabs}>
           {[
-            { key: 'all', label: 'All Games', emoji: '🏆' },
             { key: 'colorMatch', label: 'Color Match', emoji: '🎨' },
             { key: 'reactionTap', label: 'Reaction Tap', emoji: '⚡' },
           ].map((game) => (
@@ -225,60 +221,63 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
               </Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </View>
       </View>
 
       {/* Level Selector */}
       <View style={styles.levelContainer}>
-        {['easy', 'medium', 'hard'].map((levelOption) => (
-          <TouchableOpacity
-            key={levelOption}
-            style={[
-              styles.levelButton,
-              selectedLevel === levelOption && styles.levelButtonActive
-            ]}
-            onPress={() => setSelectedLevel(levelOption as any)}
-            activeOpacity={0.8}
-          >
-            <Text style={[
-              styles.levelButtonText,
-              selectedLevel === levelOption && styles.levelButtonTextActive
-            ]}>
-              {levelOption.toUpperCase()}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <View style={styles.levelTabs}>
+          {[
+            { key: 'easy', label: 'Easy', emoji: '🟢' },
+            { key: 'medium', label: 'Medium', emoji: '🟡' },
+            { key: 'hard', label: 'Hard', emoji: '🔴' },
+          ].map((level) => (
+            <TouchableOpacity
+              key={level.key}
+              style={[
+                styles.levelTab,
+                selectedLevel === level.key && styles.levelTabActive
+              ]}
+              onPress={() => setSelectedLevel(level.key as any)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.levelTabEmoji}>{level.emoji}</Text>
+              <Text style={[
+                styles.levelTabText,
+                selectedLevel === level.key && styles.levelTabTextActive
+              ]}>
+                {level.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      {/* Stats Cards */}
+
+
+      {/* Stats Cards - Compact */}
       <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <LinearGradient
-            colors={['rgba(0, 255, 198, 0.2)', 'rgba(0, 212, 170, 0.1)']}
-            style={styles.statCardGradient}
-          >
-            <Text style={styles.statNumber}>{totalGames}</Text>
-            <Text style={styles.statLabel}>Total Games</Text>
-          </LinearGradient>
-        </View>
-        
         <View style={styles.statCard}>
           <LinearGradient
             colors={['rgba(255, 184, 0, 0.2)', 'rgba(255, 159, 10, 0.1)']}
             style={styles.statCardGradient}
           >
-            <Text style={styles.statNumber}>{bestScore}</Text>
+            <Text style={styles.statNumber}>{
+              selectedGame === 'colorMatch' ? colorMatchStats.bestScore : reactionTapStats.bestScore
+            }</Text>
             <Text style={styles.statLabel}>Best Score</Text>
           </LinearGradient>
         </View>
         
         <View style={styles.statCard}>
           <LinearGradient
-            colors={['rgba(142, 45, 226, 0.2)', 'rgba(74, 0, 224, 0.1)']}
+            colors={['rgba(0, 255, 198, 0.2)', 'rgba(0, 212, 170, 0.1)']}
             style={styles.statCardGradient}
           >
-            <Text style={styles.statNumber}>{totalXP}</Text>
-            <Text style={styles.statLabel}>Total XP</Text>
+            <Text style={styles.statNumber}>{
+              Math.round(selectedGame === 'colorMatch' ? colorMatchStats.averageScore : reactionTapStats.averageScore)
+            }</Text>
+            <Text style={styles.statLabel}>Average</Text>
           </LinearGradient>
         </View>
       </View>      {/* Leaderboard List */}
@@ -319,13 +318,13 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
                   <Text style={styles.rankNumber}>#{index + 1}</Text>
                 </View>
 
-                {/* Game Info */}
+                {/* Player Info */}
                 <View style={styles.gameInfo}>
                   <View style={styles.gameHeader}>
                     <Text style={styles.gameEmoji}>{score.emoji}</Text>
-                    <Text style={styles.gameName}>{score.game}</Text>
+                    <Text style={styles.gameName}>{score.username || 'Player'}</Text>
                   </View>
-                  <Text style={styles.gameDate}>{score.date}</Text>
+                  <Text style={styles.gameDate}>{score.level}</Text>
                 </View>
 
                 {/* Score */}
@@ -336,22 +335,10 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
               </LinearGradient>
             </View>
           ))}
+          
+
         </ScrollView>
       </View>
-
-      {/* Reset Button */}
-      <TouchableOpacity
-        style={styles.resetButton}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={['rgba(255, 59, 48, 0.2)', 'rgba(255, 45, 85, 0.1)']}
-          style={styles.resetButtonGradient}
-        >
-          <Ionicons name="refresh" size={20} color="#FF3B30" />
-          <Text style={styles.resetButtonText}>Clear All Scores</Text>
-        </LinearGradient>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -373,8 +360,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Orbitron_400Regular',
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: 30,
+    paddingTop: 15,
+    paddingBottom: 15,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(142, 45, 226, 0.3)',
@@ -389,24 +376,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   headerContent: {
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    marginTop: -20
   },
   headerEmoji: {
-    fontSize: 60,
-    marginBottom: 10,
+    fontSize: 32,
+    marginBottom: 4,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 18,
     fontFamily: 'Orbitron_700Bold',
     color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: 5,
+    marginBottom: 2,
     textShadowColor: '#8E2DE2',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 15,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Orbitron_400Regular',
     color: '#B8B8D1',
     textAlign: 'center',
@@ -414,7 +403,7 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingVertical: 10,
     gap: 10,
   },
   statCard: {
@@ -423,20 +412,20 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   statCardGradient: {
-    padding: 15,
+    padding: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 15,
   },
   statNumber: {
-    fontSize: 20,
+    fontSize: 16,
     fontFamily: 'Orbitron_700Bold',
     color: '#FFFFFF',
-    marginBottom: 5,
+    marginBottom: 3,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontFamily: 'Orbitron_400Regular',
     color: '#B8B8D1',
   },
@@ -457,7 +446,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 30,
   },
   scoreItem: {
     marginBottom: 12,
@@ -531,35 +520,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Orbitron_400Regular',
     color: '#B8B8D1',
   },
-  resetButton: {
-    position: 'absolute',
-    bottom: 50,
-    left: 20,
-    right: 20,
-    borderRadius: 15,
-    overflow: 'hidden',
-  },
-  resetButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 59, 48, 0.3)',
-    borderRadius: 15,
-    gap: 10,
-  },
-  resetButtonText: {
-    fontSize: 14,
-    fontFamily: 'Orbitron_400Regular',
-    color: '#FF3B30',
-  },
+
   filterContainer: {
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   filterTabs: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 5,
   },
   filterTab: {
@@ -592,33 +561,43 @@ const styles = StyleSheet.create({
     fontFamily: 'Orbitron_700Bold',
   },
   levelContainer: {
-    flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingBottom: 15,
-    gap: 10,
+    paddingVertical: 5,
   },
-  levelButton: {
-    flex: 1,
+  levelTabs: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+  },
+  levelTab: {
     backgroundColor: 'rgba(26, 26, 46, 0.6)',
     borderRadius: 15,
-    paddingVertical: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginHorizontal: 4,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(142, 45, 226, 0.3)',
+    minWidth: 60,
   },
-  levelButtonActive: {
-    backgroundColor: 'rgba(0, 255, 198, 0.2)',
-    borderColor: '#00FFC6',
+  levelTabActive: {
+    backgroundColor: 'rgba(142, 45, 226, 0.3)',
+    borderColor: '#8E2DE2',
   },
-  levelButtonText: {
-    fontSize: 14,
+  levelTabEmoji: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  levelTabText: {
+    fontSize: 10,
     fontFamily: 'Orbitron_400Regular',
     color: '#B8B8D1',
+    textAlign: 'center',
   },
-  levelButtonTextActive: {
-    color: '#00FFC6',
+  levelTabTextActive: {
+    color: '#FFFFFF',
     fontFamily: 'Orbitron_700Bold',
-    textShadowColor: '#00FFC6',
-    textShadowRadius: 5,
   },
+
 });

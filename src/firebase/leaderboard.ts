@@ -19,12 +19,18 @@ export interface LeaderboardEntry {
     bestScore: number;
     averageScore: number;
     totalXP: number;
+    easyCompleted: number;
+    mediumCompleted: number;
+    hardCompleted: number;
   };
   reactionTapStats: {
     totalGames: number;
     bestScore: number;
     averageScore: number;
     totalXP: number;
+    easyCompleted: number;
+    mediumCompleted: number;
+    hardCompleted: number;
   };
 }
 
@@ -69,12 +75,18 @@ class LeaderboardService {
             bestScore: 0,
             averageScore: 0,
             totalXP: 0,
+            easyCompleted: 0,
+            mediumCompleted: 0,
+            hardCompleted: 0,
           },
           reactionTapStats: data.reactionTapStats || {
             totalGames: 0,
             bestScore: 0,
             averageScore: 0,
             totalXP: 0,
+            easyCompleted: 0,
+            mediumCompleted: 0,
+            hardCompleted: 0,
           },
         });
       });
@@ -122,12 +134,18 @@ class LeaderboardService {
               bestScore: 0,
               averageScore: 0,
               totalXP: 0,
+              easyCompleted: 0,
+              mediumCompleted: 0,
+              hardCompleted: 0,
             },
             reactionTapStats: data.reactionTapStats || {
               totalGames: 0,
               bestScore: 0,
               averageScore: 0,
               totalXP: 0,
+              easyCompleted: 0,
+              mediumCompleted: 0,
+              hardCompleted: 0,
             },
           });
         }

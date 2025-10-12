@@ -38,16 +38,12 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   navigation,
   route,
 }) => {
-  console.log('🎮 GameOverScreen rendered with params:', route.params);
   
   const { gameType, score, xpEarned, level } = route.params;
   const { colorMatchStats, reactionTapStats, resetCurrentGame } = useGame();
   const { user, updateGameStats } = useAuth();
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const initializedRef = useRef(false);
-
-  console.log('👤 Current user in GameOverScreen:', user?.username || 'No user');
-  console.log('📊 Game stats:', gameType === "colorMatch" ? colorMatchStats : reactionTapStats);
 
   const gameStats =
     gameType === "colorMatch" ? colorMatchStats : reactionTapStats;
@@ -82,15 +78,12 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
       return;
     }
 
-    console.log('📤 Starting score submission...');
-
     // Immediately mark as submitted to prevent UI hanging
     setScoreSubmitted(true);
 
     try {
       // Update user stats in the new system - with timeout protection
       if (user && (gameType === 'colorMatch' || gameType === 'reactionTap') && level) {
-        console.log('📊 Updating user game stats...', { gameType, level, score, xpEarned });
         try {
           // Add timeout protection for stats update
           const statsPromise = updateGameStats(gameType, level, score, xpEarned);
@@ -99,7 +92,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           });
           
           await Promise.race([statsPromise, timeoutPromise]);
-          console.log('✅ User stats updated successfully');
         } catch (statsError) {
           console.error('❌ Failed to update user stats:', statsError);
           // Continue anyway - don't let stats error break the screen
@@ -114,11 +106,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           validGameType: gameType === 'colorMatch' || gameType === 'reactionTap' 
         });
       }
-
-      // Leaderboard is now handled automatically via user stats - no separate submission needed
-      console.log('✅ Leaderboard data updated via user stats');
-
-      console.log("✅ Score submission process completed");
     } catch (error) {
       console.error("❌ Failed to submit score:", error);
       console.error("❌ Error details:", JSON.stringify(error, null, 2));
@@ -135,7 +122,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   }, [scoreSubmitted, score, gameType, level, xpEarned, user, updateGameStats]);
 
 useEffect(() => {
-  console.log('🎮 GameOverScreen initializing (always)');
   resetCurrentGame();
 
   // Animacije neka se uvek pokrenu kad se ekran otvori
@@ -158,7 +144,6 @@ useEffect(() => {
   }, 100);
 
   return () => {
-    console.log('🧹 GameOverScreen cleanup');
     fadeAnimation.value = 0;
     slideAnimation.value = 0;
     scaleAnimation.value = 0;
@@ -176,7 +161,6 @@ useEffect(() => {
 ]);
 
 
-  console.log('✅ GameOverScreen main render');
   const getGameInfo = () => {
     switch (gameType) {
       case "colorMatch":
@@ -242,8 +226,6 @@ useEffect(() => {
     textShadowOffset: { width: 0, height: 0 },
   }));
 
-    console.log('✅ GameOverScreen main render 1');
-
   if (!fontsLoaded) {
     console.log('⏳ Fonts not loaded yet...');
     return (
@@ -252,7 +234,6 @@ useEffect(() => {
       </View>
     );
   }
-  console.log('✅ GameOverScreen main render 2');
 
   // Safety check for route params
   if (!route?.params) {
@@ -265,11 +246,6 @@ useEffect(() => {
       </SafeAreaView>
     );
   }
-
-  console.log('🎨 fadeAnimation:', fadeAnimation.value);
-
-  console.log('✅ GameOverScreen rendering main content 3');
-console.log('🎨 Opacity:', fadeAnimation.value);
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
