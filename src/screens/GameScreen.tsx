@@ -110,16 +110,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
           <Text style={styles.instructionsText}>{gameInfo.instructions}</Text>
         </View>
 
-        {/* Game Area */}
-        <View style={styles.gameArea}>
-          <Text style={styles.comingSoonText}>
-            {gameType === 'colorSnake' ? '🚧 Coming Soon 🚧' : '🎮 Game Implementation 🎮'}
-          </Text>
-          <Text style={styles.gameAreaSubtext}>
-            Game components will be implemented here
-          </Text>
-        </View>
-
         {/* Level Selection */}
         {(gameType === 'colorMatch' || gameType === 'reactionTap') && (
           <View style={styles.levelSelectionContainer}>
@@ -278,7 +268,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 20,
+    top: 50,
     left: 20,
     zIndex: 1000,
     borderRadius: 25,
@@ -359,22 +349,6 @@ const styles = StyleSheet.create({
     padding: 40,
     marginBottom: 30,
   },
-  comingSoonText: {
-    fontSize: 24,
-    fontFamily: 'Orbitron_700Bold',
-    color: '#FFB800',
-    textAlign: 'center',
-    marginBottom: 10,
-    textShadowColor: '#FFB800',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
-  },
-  gameAreaSubtext: {
-    fontSize: 14,
-    fontFamily: 'Orbitron_400Regular',
-    color: '#6B7280',
-    textAlign: 'center',
-  },
   buttonsContainer: {
     gap: 15,
   },
@@ -415,7 +389,7 @@ const styles = StyleSheet.create({
     color: '#8E2DE2',
   },
   levelSelectionContainer: {
-    marginBottom: 20,
+    marginBottom: 60,
   },
   levelSelectionTitle: {
     fontSize: 18,

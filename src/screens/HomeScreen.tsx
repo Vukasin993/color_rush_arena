@@ -150,28 +150,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             isComingSoon={true}
           />
         </View>
-
-        {/* Stats Section */}
-        <View style={styles.statsContainer}>
-          <Text style={styles.sectionTitle}>Quick Stats</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>0</Text>
-              <Text style={styles.statLabel}>Games Played</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>0</Text>
-              <Text style={styles.statLabel}>Best Score</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>-</Text>
-              <Text style={styles.statLabel}>Rank</Text>
-            </View>
-          </View>
-        </View>
-        
-        {/* Bottom safe area spacer */}
-        <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -195,7 +173,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 40,
     paddingBottom: 40,
   },
   leaderboardButton: {
@@ -214,7 +192,7 @@ const styles = StyleSheet.create({
   },
   floatingButton: {
     position: 'absolute',
-    top: 20,
+    top: 10,
     right: 20,
     width: 50,
     height: 50,
@@ -227,6 +205,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   floatingButtonGradient: {
+    backgroundColor: 'transparent',
     width: 50,
     height: 50,
     borderRadius: 25,
@@ -343,37 +322,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Orbitron_700Bold',
     color: '#FFB800',
     letterSpacing: 1,
-  },
-  statsContainer: {
-    backgroundColor: 'rgba(26, 26, 46, 0.5)',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(142, 45, 226, 0.2)',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontFamily: 'Orbitron_700Bold',
-    color: '#00FFC6',
-    textShadowColor: '#00FFC6',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontFamily: 'Orbitron_400Regular',
-    color: '#6B7280',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  bottomSpacer: {
-    height: 30,
   },
 });

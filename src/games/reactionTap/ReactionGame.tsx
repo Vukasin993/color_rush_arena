@@ -90,7 +90,7 @@ const getLevelConfig = (level: 'easy' | 'medium' | 'hard') => {
 const PENALTY_MS = 100;
 
 export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation, route }) => {
-  const { level = 'easy' } = route.params || {};
+  const { level = 'easy', autoStart = false } = route.params || {};
   const { startGame, endGame, updateScore } = useGame();
   const levelConfig = getLevelConfig(level);
   
@@ -278,6 +278,13 @@ export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation, route })
     setTimeout(startNewRound, 1000);
   }, [startGame, startNewRound, level]);
 
+  // Auto-start game if autoStart param is true
+  useEffect(() => {
+    if (autoStart && !gameStarted) {
+      handleStartGame();
+    }
+  }, [autoStart, gameStarted, handleStartGame]);
+
   // Show results screen
   const showResults = useCallback(() => {
     const validReactions = results.filter(r => r.wasCorrect);
@@ -287,8 +294,8 @@ export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation, route })
     
     const score = Math.max(0, Math.round(1000 - avgReactionTime));
     const xpEarned = score * 10 + (avgReactionTime < 300 ? 100 : 0);
-    
-    navigation.navigate('GameOverScreen', {
+
+    console.log('Show results reaction game:', {
       gameType: 'reactionTap',
       level,
       score,

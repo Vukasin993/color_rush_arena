@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import {
   useFonts,
   Orbitron_400Regular,
@@ -10,22 +9,21 @@ import {
 interface GameHeaderProps {
   timeLeft: number;
   score: number;
-  progressAnimation: any;
+  totalTime: number;
 }
 
 export const GameHeader: React.FC<GameHeaderProps> = ({
   timeLeft,
   score,
-  progressAnimation,
+  totalTime,
 }) => {
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
     Orbitron_700Bold,
   });
 
-  const progressStyle = useAnimatedStyle(() => ({
-    width: `${progressAnimation.value * 100}%`,
-  }));
+  // Calculate progress as percentage of time remaining
+  const progressPercentage = (timeLeft / totalTime) * 100;
 
   if (!fontsLoaded) return null;
 
@@ -35,7 +33,7 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
         <Text style={styles.timerLabel}>Time</Text>
         <View style={styles.progressBarContainer}>
           <View style={styles.progressBarBg}>
-            <Animated.View style={[styles.progressBar, progressStyle]} />
+            <View style={[styles.progressBar, { width: `${progressPercentage}%` }]} />
           </View>
         </View>
         <Text style={styles.timerText}>{timeLeft}s</Text>

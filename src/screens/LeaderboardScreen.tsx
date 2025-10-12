@@ -168,8 +168,6 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
-      
-      {/* Header */}
       <LinearGradient
         colors={['#1A1A2E', '#16213E']}
         style={styles.header}
@@ -189,7 +187,6 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
         </View>
       </LinearGradient>
 
-      {/* Filter Tabs */}
       <View style={styles.filterContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabs}>
           {[

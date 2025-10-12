@@ -15,7 +15,6 @@ import Animated, {
   withTiming,
   withRepeat,
   withSequence,
-  interpolateColor,
 } from 'react-native-reanimated';
 import { useGame } from '../../store/useGameStore';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -62,7 +61,7 @@ const getColorsForLevel = (level: 'easy' | 'medium' | 'hard'): ColorData[] => {
 const GAME_DURATION = 30; // seconds
 
 export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({ navigation, route }) => {
-  const { level = 'easy' } = route.params || {};
+  const { level = 'easy', autoStart = false } = route.params || {};
   const { currentGame, startGame, endGame, updateScore } = useGame();
   
   const COLORS = getColorsForLevel(level);
@@ -75,10 +74,8 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({ navigation, rout
   const timeLeftRef = useRef(GAME_DURATION);
   const startTimeRef = useRef<number | null>(null);
   
-  // Animation values
+  // Animation values  
   const pulseAnimation = useSharedValue(1);
-  const correctAnimation = useSharedValue(0);
-  const progressAnimation = useSharedValue(1);
   const shakeAnimation = useSharedValue(0);
 
   // Generate new round
@@ -97,6 +94,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({ navigation, rout
   const handleGameOver = useCallback(() => {
     const finalScore = scoreRef.current;
     endGame(finalScore);
+    console.log('Game Over! Final Score:', finalScore);
     navigation.navigate('GameOverScreen', { 
       gameType: 'colorMatch',
       level,
@@ -114,10 +112,14 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({ navigation, rout
     scoreRef.current = 0; // Reset score ref
     startGame('colorMatch', level);
     generateNewRound();
-    
-    // Start progress animation
-    progressAnimation.value = withTiming(0, { duration: GAME_DURATION * 1000 });
-  }, [startGame, level, generateNewRound, progressAnimation]);
+  }, [startGame, level, generateNewRound]);
+
+  // Auto-start game if autoStart param is true
+  useEffect(() => {
+    if (autoStart && !gameStarted) {
+      handleStartGame();
+    }
+  }, [autoStart, gameStarted, handleStartGame]);
 
   // Timer effect using real time calculation for accuracy
   useEffect(() => {
@@ -150,12 +152,6 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({ navigation, rout
       updateScore(1);
       scoreRef.current = currentGame.score + 1;
       
-      // Trigger correct animation
-      correctAnimation.value = withSequence(
-        withTiming(1, { duration: 150 }),
-        withTiming(0, { duration: 150 })
-      );
-      
       // Pulse animation
       pulseAnimation.value = withSequence(
         withTiming(1.2, { duration: 100 }),
@@ -178,18 +174,9 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({ navigation, rout
       
       Vibration.vibrate([100, 50, 100]);
     }
-  }, [gameStarted, currentWord.name, updateScore, generateNewRound, correctAnimation, pulseAnimation, shakeAnimation, currentGame.score]);
+  }, [gameStarted, currentWord.name, updateScore, generateNewRound, pulseAnimation, shakeAnimation, currentGame.score]);
 
   // Animation styles
-  const correctOverlayStyle = useAnimatedStyle(() => ({
-    opacity: correctAnimation.value,
-    backgroundColor: interpolateColor(
-      correctAnimation.value,
-      [0, 1],
-      ['rgba(0, 255, 198, 0)', 'rgba(0, 255, 198, 0.3)']
-    ),
-  }));
-
   const shakeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeAnimation.value }],
   }));
@@ -212,14 +199,11 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({ navigation, rout
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
       
-      {/* Correct Answer Overlay */}
-      <Animated.View style={[styles.correctOverlay, correctOverlayStyle]} />
-      
       {/* Header with Timer and Score */}
       <GameHeader
         timeLeft={timeLeft}
         score={currentGame.score}
-        progressAnimation={progressAnimation}
+        totalTime={GAME_DURATION}
       />
 
       {/* Main Game Area */}
@@ -258,15 +242,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F0F1B',
-  },
-  correctOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1000,
-    pointerEvents: 'none',
   },
   gameArea: {
     flex: 1,

@@ -134,19 +134,19 @@ export default function App() {
           />
           <Stack.Screen 
             name="LeaderboardScreen" 
-            component={LeaderboardScreen} 
+            component={(props: any) => <LeaderboardScreen {...props} />} 
           />
           <Stack.Screen 
             name="ColorMatchGame" 
-            component={ColorMatchGame} 
+            component={(props: any) => <ColorMatchGame {...props} />} 
           />
           <Stack.Screen 
             name="ReactionGame" 
-            component={ReactionGame} 
+            component={(props: any) => <ReactionGame {...props} />} 
           />
           <Stack.Screen 
             name="GameOverScreen" 
-            component={GameOverScreen} 
+            component={(props: any) => <GameOverScreen {...props} />} 
           />
         </Stack.Navigator>
       </NavigationContainer>
