@@ -81,7 +81,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
 
   const timeLeftRef = useRef(GAME_DURATION);
   const startTimeRef = useRef<number | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null); // ✅ keep reference for cleanup
+  const intervalRef = useRef<NodeJS.Timeout | number | null>(null); // ✅ keep reference for cleanup
 
   // 🔹 Shared animations
   const pulseAnimation = useSharedValue(1);

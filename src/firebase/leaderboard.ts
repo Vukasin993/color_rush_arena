@@ -1,26 +1,31 @@
 import { 
   collection, 
-  addDoc, 
   query, 
   orderBy, 
   limit, 
-  getDocs, 
-  where, 
-  Timestamp 
+  getDocs 
 } from 'firebase/firestore';
 import { firestore } from './config';
 
 export interface LeaderboardEntry {
-  id?: string;
-  userId: string;
-  gameType: 'colorMatch' | 'reactionTap' | 'colorSnake';
-  level: 'easy' | 'medium' | 'hard';
-  score: number;
-  xpEarned: number;
-  reactionTime?: number; // For reaction tap game
-  accuracy?: number; // For color match game
-  timestamp: Date;
-  createdAt: Timestamp;
+  uid: string;
+  username: string;
+  avatar?: string;
+  totalXP: number;
+  level: number;
+  totalGames: number;
+  colorMatchStats: {
+    totalGames: number;
+    bestScore: number;
+    averageScore: number;
+    totalXP: number;
+  };
+  reactionTapStats: {
+    totalGames: number;
+    bestScore: number;
+    averageScore: number;
+    totalXP: number;
+  };
 }
 
 export interface LeaderboardStats {
@@ -30,88 +35,136 @@ export interface LeaderboardStats {
 }
 
 class LeaderboardService {
-  private readonly COLLECTION_NAME = 'leaderboard';
+  private readonly USERS_COLLECTION = 'users';
 
-  // Submit score to leaderboard
-  async submitScore(entry: Omit<LeaderboardEntry, 'id' | 'createdAt'>): Promise<string> {
-    try {
-      const docRef = await addDoc(collection(firestore, this.COLLECTION_NAME), {
-        ...entry,
-        createdAt: Timestamp.now(),
-      });
-      
-      console.log('📊 Score submitted to leaderboard:', docRef.id);
-      return docRef.id;
-    } catch (error) {
-      console.error('❌ Error submitting score:', error);
-      throw error;
-    }
+  // No more submitScore - stats are updated in userService directly
+  async submitScore(entry: any): Promise<string> {
+    console.log('✅ Score submission handled by userService, no leaderboard entry needed');
+    return 'handled-by-user-service';
   }
 
-  // Get top scores for a specific game and level
-  async getTopScores(
-    gameType: 'colorMatch' | 'reactionTap' | 'colorSnake',
-    level: 'easy' | 'medium' | 'hard' = 'easy',
-    limitCount: number = 100
-  ): Promise<LeaderboardEntry[]> {
+  // Get top players by total XP
+  async getTopPlayersByXP(limitCount: number = 50): Promise<LeaderboardEntry[]> {
     try {
       const q = query(
-        collection(firestore, this.COLLECTION_NAME),
-        where('gameType', '==', gameType),
-        where('level', '==', level),
-        orderBy('score', 'desc'),
+        collection(firestore, this.USERS_COLLECTION),
+        orderBy('totalXP', 'desc'),
         limit(limitCount)
       );
 
       const querySnapshot = await getDocs(q);
-      const scores: LeaderboardEntry[] = [];
+      const players: LeaderboardEntry[] = [];
 
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        scores.push({
-          id: doc.id,
-          ...data,
-          timestamp: data.createdAt.toDate(),
-        } as LeaderboardEntry);
+        players.push({
+          uid: doc.id,
+          username: data.username,
+          avatar: data.avatar,
+          totalXP: data.totalXP || 0,
+          level: data.level || 1,
+          totalGames: data.totalGames || 0,
+          colorMatchStats: data.colorMatchStats || {
+            totalGames: 0,
+            bestScore: 0,
+            averageScore: 0,
+            totalXP: 0,
+          },
+          reactionTapStats: data.reactionTapStats || {
+            totalGames: 0,
+            bestScore: 0,
+            averageScore: 0,
+            totalXP: 0,
+          },
+        });
       });
 
-      console.log(`📊 Retrieved ${scores.length} scores for ${gameType} (${level})`);
-      return scores;
+      console.log(`📊 Retrieved ${players.length} top players by XP`);
+      return players;
     } catch (error) {
-      console.error('❌ Error getting top scores:', error);
+      console.error('❌ Error getting top players:', error);
       return [];
     }
   }
 
-  // Get player's rank for a specific score
-  async getPlayerRank(
-    gameType: 'colorMatch' | 'reactionTap' | 'colorSnake',
-    level: 'easy' | 'medium' | 'hard',
-    score: number
-  ): Promise<LeaderboardStats> {
+  // Get top players by best score for specific game
+  async getTopPlayersByGameScore(
+    gameType: 'colorMatch' | 'reactionTap',
+    limitCount: number = 50
+  ): Promise<LeaderboardEntry[]> {
     try {
-      // Get all scores higher than player's score
-      const higherScoresQuery = query(
-        collection(firestore, this.COLLECTION_NAME),
-        where('gameType', '==', gameType),
-        where('level', '==', level),
-        where('score', '>', score)
+      const statsField = `${gameType}Stats.bestScore`;
+      
+      const q = query(
+        collection(firestore, this.USERS_COLLECTION),
+        orderBy(statsField, 'desc'),
+        limit(limitCount)
       );
 
-      // Get total scores for this game/level
-      const totalScoresQuery = query(
-        collection(firestore, this.COLLECTION_NAME),
-        where('gameType', '==', gameType),
-        where('level', '==', level)
+      const querySnapshot = await getDocs(q);
+      const players: LeaderboardEntry[] = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const gameStats = data[`${gameType}Stats`];
+        
+        // Only include players who have played this game
+        if (gameStats && gameStats.totalGames > 0) {
+          players.push({
+            uid: doc.id,
+            username: data.username,
+            avatar: data.avatar,
+            totalXP: data.totalXP || 0,
+            level: data.level || 1,
+            totalGames: data.totalGames || 0,
+            colorMatchStats: data.colorMatchStats || {
+              totalGames: 0,
+              bestScore: 0,
+              averageScore: 0,
+              totalXP: 0,
+            },
+            reactionTapStats: data.reactionTapStats || {
+              totalGames: 0,
+              bestScore: 0,
+              averageScore: 0,
+              totalXP: 0,
+            },
+          });
+        }
+      });
+
+      console.log(`📊 Retrieved ${players.length} top players for ${gameType}`);
+      return players;
+    } catch (error) {
+      console.error('❌ Error getting top players by game score:', error);
+      return [];
+    }
+  }
+
+  // Get player's rank by total XP
+  async getPlayerRankByXP(playerXP: number): Promise<LeaderboardStats> {
+    try {
+      // Get all players with higher XP
+      const q = query(
+        collection(firestore, this.USERS_COLLECTION),
+        orderBy('totalXP', 'desc')
       );
 
-      const [higherScoresSnapshot, totalScoresSnapshot] = await Promise.all([
-        getDocs(higherScoresQuery),
-        getDocs(totalScoresQuery)
-      ]);
+      const querySnapshot = await getDocs(q);
+      let rank = 0;
+      let totalPlayers = 0;
 
-      const rank = higherScoresSnapshot.size + 1;
-      const totalPlayers = totalScoresSnapshot.size;
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const userXP = data.totalXP || 0;
+        totalPlayers++;
+        
+        if (userXP > playerXP) {
+          rank++;
+        }
+      });
+
+      rank = rank + 1; // Player's actual rank
       const percentile = totalPlayers > 0 ? Math.round(((totalPlayers - rank + 1) / totalPlayers) * 100) : 0;
 
       return {
@@ -125,75 +178,21 @@ class LeaderboardService {
     }
   }
 
-  // Get player's best scores
-  async getPlayerBestScores(
-    userId: string,
-    gameType?: 'colorMatch' | 'reactionTap' | 'colorSnake'
-  ): Promise<LeaderboardEntry[]> {
-    try {
-      let q;
-      if (gameType) {
-        q = query(
-          collection(firestore, this.COLLECTION_NAME),
-          where('userId', '==', userId),
-          where('gameType', '==', gameType),
-          orderBy('score', 'desc'),
-          limit(10)
-        );
-      } else {
-        q = query(
-          collection(firestore, this.COLLECTION_NAME),
-          where('userId', '==', userId),
-          orderBy('score', 'desc'),
-          limit(20)
-        );
-      }
-
-      const querySnapshot = await getDocs(q);
-      const scores: LeaderboardEntry[] = [];
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        scores.push({
-          id: doc.id,
-          ...data,
-          timestamp: data.createdAt.toDate(),
-        } as LeaderboardEntry);
-      });
-
-      return scores;
-    } catch (error) {
-      console.error('❌ Error getting player best scores:', error);
-      return [];
-    }
+  // Legacy methods for compatibility
+  async getTopScores(): Promise<LeaderboardEntry[]> {
+    return this.getTopPlayersByXP();
   }
 
-  // Get global leaderboard (all games combined)
+  async getPlayerRank(): Promise<LeaderboardStats> {
+    return { rank: 0, totalPlayers: 0, percentile: 0 };
+  }
+
+  async getPlayerBestScores(): Promise<LeaderboardEntry[]> {
+    return [];
+  }
+
   async getGlobalLeaderboard(limitCount: number = 50): Promise<LeaderboardEntry[]> {
-    try {
-      const q = query(
-        collection(firestore, this.COLLECTION_NAME),
-        orderBy('score', 'desc'),
-        limit(limitCount)
-      );
-
-      const querySnapshot = await getDocs(q);
-      const scores: LeaderboardEntry[] = [];
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        scores.push({
-          id: doc.id,
-          ...data,
-          timestamp: data.createdAt.toDate(),
-        } as LeaderboardEntry);
-      });
-
-      return scores;
-    } catch (error) {
-      console.error('❌ Error getting global leaderboard:', error);
-      return [];
-    }
+    return this.getTopPlayersByXP(limitCount);
   }
 }
 

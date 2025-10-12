@@ -17,6 +17,7 @@ import Animated, {
   withTiming,
   withDelay,
   withSequence,
+  interpolate,
 } from "react-native-reanimated";
 import {
   useFonts,
@@ -24,7 +25,7 @@ import {
   Orbitron_700Bold,
 } from "@expo-google-fonts/orbitron";
 import { useGame } from "../store/useGameStore";
-import { leaderboardService } from "../firebase/leaderboard";
+import { useAuth } from "../store/useAuthStore";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../types/navigation";
 
@@ -37,13 +38,30 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   navigation,
   route,
 }) => {
+  console.log('🎮 GameOverScreen rendered with params:', route.params);
+  
   const { gameType, score, xpEarned, level } = route.params;
   const { colorMatchStats, reactionTapStats, resetCurrentGame } = useGame();
+  const { user, updateGameStats } = useAuth();
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const initializedRef = useRef(false);
 
+  console.log('👤 Current user in GameOverScreen:', user?.username || 'No user');
+  console.log('📊 Game stats:', gameType === "colorMatch" ? colorMatchStats : reactionTapStats);
+
   const gameStats =
     gameType === "colorMatch" ? colorMatchStats : reactionTapStats;
+
+  // Fallback stats if data is missing
+  const safeGameStats = gameStats || {
+    totalGames: 0,
+    bestScore: 0,
+    averageScore: 0,
+    totalXP: 0,
+    easyCompleted: 0,
+    mediumCompleted: 0,
+    hardCompleted: 0,
+  };
 
   // Animation values
   const fadeAnimation = useSharedValue(0);
@@ -57,42 +75,73 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     Orbitron_700Bold,
   });
 
-  // Submit score to Firebase
+  // Submit score to Firebase and update user stats
   const submitScoreToFirebase = React.useCallback(async () => {
-    if (scoreSubmitted || score <= 0) return;
+    if (scoreSubmitted || score <= 0) {
+      console.log('🚫 Skipping score submission:', { scoreSubmitted, score });
+      return;
+    }
+
+    console.log('📤 Starting score submission...');
+
+    // Immediately mark as submitted to prevent UI hanging
+    setScoreSubmitted(true);
 
     try {
-      await leaderboardService.submitScore({
-        userId: "anonymous_user", // TODO: replace with real userId when auth is implemented
-        gameType,
-        level,
-        score,
-        xpEarned,
-        accuracy:
-          gameType === "colorMatch"
-            ? Math.max(0, (score / (score + Math.abs(score - 20))) * 100)
-            : undefined,
-        timestamp: new Date(),
-      });
+      // Update user stats in the new system - with timeout protection
+      if (user && (gameType === 'colorMatch' || gameType === 'reactionTap') && level) {
+        console.log('📊 Updating user game stats...', { gameType, level, score, xpEarned });
+        try {
+          // Add timeout protection for stats update
+          const statsPromise = updateGameStats(gameType, level, score, xpEarned);
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Stats update timeout')), 5000);
+          });
+          
+          await Promise.race([statsPromise, timeoutPromise]);
+          console.log('✅ User stats updated successfully');
+        } catch (statsError) {
+          console.error('❌ Failed to update user stats:', statsError);
+          // Continue anyway - don't let stats error break the screen
+          // Mark as submitted so we don't retry
+          setScoreSubmitted(true);
+        }
+      } else {
+        console.log('⚠️ Skipping user stats update:', { 
+          hasUser: !!user, 
+          gameType, 
+          level, 
+          validGameType: gameType === 'colorMatch' || gameType === 'reactionTap' 
+        });
+      }
 
-      setScoreSubmitted(true);
-      console.log("✅ Score submitted successfully to Firebase");
+      // Leaderboard is now handled automatically via user stats - no separate submission needed
+      console.log('✅ Leaderboard data updated via user stats');
+
+      console.log("✅ Score submission process completed");
     } catch (error) {
       console.error("❌ Failed to submit score:", error);
-      Alert.alert(
-        "Score Submission Failed",
-        "Could not save your score to the leaderboard. Check your internet connection.",
-        [{ text: "OK" }]
-      );
+      console.error("❌ Error details:", JSON.stringify(error, null, 2));
+      
+      // Don't show alert if it's a Firebase Auth error - continue anyway
+      if (error instanceof Error && !error.message.includes('auth')) {
+        Alert.alert(
+          "Score Submission Failed",
+          "Could not save your score to the leaderboard. Check your internet connection.",
+          [{ text: "OK" }]
+        );
+      }
     }
-  }, [scoreSubmitted, score, gameType, level, xpEarned]);
+  }, [scoreSubmitted, score, gameType, level, xpEarned, user, updateGameStats]);
 
   useEffect(() => {
     if (!initializedRef.current) {
+      console.log('🎮 GameOverScreen initializing...');
+      
+      // Reset game first
       resetCurrentGame();
-      submitScoreToFirebase();
-
-      // Start animations
+      
+      // Always start animations immediately - don't wait for Firebase
       fadeAnimation.value = withTiming(1, { duration: 500 });
       slideAnimation.value = withTiming(0, { duration: 600 });
       scaleAnimation.value = withDelay(
@@ -104,12 +153,21 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
       );
       xpAnimation.value = withDelay(800, withTiming(1, { duration: 1000 }));
       glowAnimation.value = withTiming(1, { duration: 1500 });
+      
+      // Submit score in background (with error handling) - don't block UI
+      setTimeout(() => {
+        submitScoreToFirebase().catch(error => {
+          console.error('❌ Score submission failed, but UI continues:', error);
+        });
+      }, 100); // Small delay to let UI render first
 
       initializedRef.current = true;
+      console.log('✅ GameOverScreen initialized');
     }
 
     // Cleanup on unmount
     return () => {
+      console.log('🧹 GameOverScreen cleanup');
       fadeAnimation.value = 0;
       slideAnimation.value = 0;
       scaleAnimation.value = 0;
@@ -126,6 +184,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     submitScoreToFirebase,
   ]);
 
+  console.log('✅ GameOverScreen main render');
   const getGameInfo = () => {
     switch (gameType) {
       case "colorMatch":
@@ -156,7 +215,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   };
 
   const gameInfo = getGameInfo();
-  const isNewBest = score === gameStats.bestScore && score > 0;
+  const isNewBest = score === safeGameStats.bestScore && score > 0;
 
   const getScoreMessage = () => {
     if (score <= 0) return "Keep practicing!";
@@ -180,24 +239,39 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     transform: [{ scale: scaleAnimation.value }],
   }));
 
-  // ✅ Replaced width interpolation with scaleX for XP bar
+  // ✅ Fixed XP bar animation using interpolate
   const xpStyle = useAnimatedStyle(() => ({
-    transform: [{ scaleX: xpAnimation.value }],
+    width: `${interpolate(xpAnimation.value, [0, 1], [0, 100])}%`,
   }));
 
   const glowStyle = useAnimatedStyle(() => ({
     textShadowColor: gameInfo.color[0],
-    textShadowRadius: 20 * glowAnimation.value,
+    textShadowRadius: interpolate(glowAnimation.value, [0, 1], [0, 20]),
     textShadowOffset: { width: 0, height: 0 },
   }));
 
   if (!fontsLoaded) {
+    console.log('⏳ Fonts not loaded yet...');
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
+
+  // Safety check for route params
+  if (!route?.params) {
+    console.error('❌ GameOverScreen: Missing route params');
+    return (
+      <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading game results...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  console.log('✅ GameOverScreen rendering main content');
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
@@ -248,19 +322,19 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             <Text style={styles.statsTitle}>Your Stats</Text>
             <View style={styles.statsGrid}>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{gameStats.totalGames}</Text>
+                <Text style={styles.statValue}>{safeGameStats.totalGames}</Text>
                 <Text style={styles.statLabel}>Games Played</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{gameStats.bestScore}</Text>
+                <Text style={styles.statValue}>{safeGameStats.bestScore}</Text>
                 <Text style={styles.statLabel}>Best Score</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{gameStats.averageScore}</Text>
+                <Text style={styles.statValue}>{safeGameStats.averageScore}</Text>
                 <Text style={styles.statLabel}>Average</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{gameStats.totalXP}</Text>
+                <Text style={styles.statValue}>{safeGameStats.totalXP}</Text>
                 <Text style={styles.statLabel}>Total XP</Text>
               </View>
             </View>

@@ -1,26 +1,27 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../firebase/config';
-
-// User type for our store
-interface AuthUser {
-  uid: string;
-  createdAt: string;
-  isAnonymous: boolean;
-}
+import { userService, UserProfile } from '../firebase/userService';
 
 interface AuthState {
-  user: AuthUser | null;
+  user: UserProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
   
   // Actions
-  signInAnonymous: () => Promise<void>;
-  signOut: () => Promise<void>;
-  setUser: (user: AuthUser | null) => void;
+  login: (customUsername?: string) => Promise<void>;
+  logout: () => Promise<void>;
+  updateUsername: (newUsername: string) => Promise<void>;
+  updateGameStats: (
+    gameType: 'colorMatch' | 'reactionTap',
+    level: 'easy' | 'medium' | 'hard',
+    score: number,
+    xpEarned: number
+  ) => Promise<void>;
+  syncUserData: () => Promise<void>;
+  checkAuthStatus: () => Promise<void>;
+  setUser: (user: UserProfile | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
@@ -36,58 +37,174 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       error: null,
 
-      // Actions
-      signInAnonymous: async () => {
+      login: async (customUsername?: string) => {
         try {
           set({ isLoading: true, error: null });
           
-          const userCredential = await signInAnonymously(auth);
-          const firebaseUser = userCredential.user;
+          const user = await userService.createUser(customUsername);
           
-          const authUser: AuthUser = {
-            uid: firebaseUser.uid,
-            createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
-            isAnonymous: firebaseUser.isAnonymous,
-          };
-          
-          set({ 
-            user: authUser, 
-            isAuthenticated: true, 
+          set({
+            user,
+            isAuthenticated: true,
             isLoading: false,
-            error: null 
+            error: null,
           });
           
-          console.log('✅ Anonymous login successful', authUser);
+          console.log('✅ User logged in successfully');
         } catch (error: any) {
-          const errorMessage = error.message || 'Anonymous sign-in failed';
+          const errorMessage = error.message || 'Login failed';
           set({ 
             error: errorMessage, 
             isLoading: false,
             isAuthenticated: false,
             user: null 
           });
-          console.error('❌ Anonymous login failed:', errorMessage);
+          console.error('❌ Login failed:', errorMessage);
+          throw error;
         }
       },
 
-      signOut: async () => {
+      logout: async () => {
         try {
-          await auth.signOut();
-          set({ 
-            user: null, 
-            isAuthenticated: false, 
+          set({ isLoading: true });
+          
+          await userService.clearUserData();
+          
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
             error: null,
-            isLoading: false 
           });
-          console.log('👋 User signed out');
+          
+          console.log('✅ User logged out successfully');
         } catch (error: any) {
-          const errorMessage = error.message || 'Sign out failed';
-          set({ error: errorMessage });
-          console.error('❌ Sign out failed:', errorMessage);
+          const errorMessage = error.message || 'Logout failed';
+          set({ error: errorMessage, isLoading: false });
+          console.error('❌ Logout failed:', errorMessage);
+          throw error;
         }
       },
 
-      setUser: (user: AuthUser | null) => {
+      updateUsername: async (newUsername: string) => {
+        try {
+          const { user } = get();
+          if (!user) throw new Error('No user found');
+          
+          await userService.updateUsername(user.uid, newUsername);
+          
+          const updatedUser = { ...user, username: newUsername };
+          set({ user: updatedUser });
+          
+          console.log('✅ Username updated successfully');
+        } catch (error: any) {
+          const errorMessage = error.message || 'Failed to update username';
+          set({ error: errorMessage });
+          console.error('❌ Failed to update username:', errorMessage);
+          throw error;
+        }
+      },
+
+      updateGameStats: async (
+        gameType: 'colorMatch' | 'reactionTap',
+        level: 'easy' | 'medium' | 'hard',
+        score: number,
+        xpEarned: number
+      ) => {
+        try {
+          const { user } = get();
+          if (!user) throw new Error('No user found');
+          
+          // Update stats locally first to prevent re-renders
+          const gameStats = gameType === 'colorMatch' ? user.colorMatchStats : user.reactionTapStats;
+          const updatedGameStats = {
+            ...gameStats,
+            totalGames: gameStats.totalGames + 1,
+            bestScore: Math.max(gameStats.bestScore, score),
+            averageScore: Math.round(
+              (gameStats.averageScore * gameStats.totalGames + score) / (gameStats.totalGames + 1)
+            ),
+            totalXP: gameStats.totalXP + xpEarned,
+            [`${level}Completed`]: gameStats[`${level}Completed` as keyof typeof gameStats] + 1,
+          };
+
+          const updatedUser = {
+            ...user,
+            [`${gameType}Stats`]: updatedGameStats,
+            totalGames: user.totalGames + 1,
+            totalXP: user.totalXP + xpEarned,
+            level: Math.floor((user.totalXP + xpEarned) / 1000) + 1,
+          };
+
+          // Update store immediately with calculated values - no AsyncStorage read needed
+          set({ user: updatedUser });
+          
+          // Update Firebase in background
+          await userService.updateGameStats(user.uid, gameType, level, score, xpEarned);
+          
+          console.log('✅ Game stats updated successfully (store updated immediately)');
+        } catch (error: any) {
+          const errorMessage = error.message || 'Failed to update game stats';
+          set({ error: errorMessage });
+          console.error('❌ Failed to update game stats:', errorMessage);
+          throw error;
+        }
+      },
+
+      syncUserData: async () => {
+        try {
+          const { user } = get();
+          if (!user) return;
+          
+          const syncedUser = await userService.syncUserData(user.uid);
+          if (syncedUser) {
+            set({ user: syncedUser });
+            console.log('✅ User data synced successfully');
+          }
+        } catch (error: any) {
+          console.error('❌ Failed to sync user data:', error);
+        }
+      },
+
+      checkAuthStatus: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          
+          const hasUser = await userService.hasUser();
+          
+          if (hasUser) {
+            const user = await userService.getUserFromStorage();
+            if (user) {
+              set({
+                user,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+              
+              // Sync with Firebase in background
+              get().syncUserData();
+              return;
+            }
+          }
+          
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        } catch (error: any) {
+          const errorMessage = error.message || 'Failed to check auth status';
+          console.error('❌ Failed to check auth status:', error);
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: errorMessage,
+          });
+        }
+      },
+
+      setUser: (user: UserProfile | null) => {
         set({ 
           user, 
           isAuthenticated: !!user,
@@ -118,35 +235,6 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Initialize auth state listener
-let authListenerInitialized = false;
-
-export const initializeAuthListener = () => {
-  if (authListenerInitialized) return;
-  
-  authListenerInitialized = true;
-  
-  onAuthStateChanged(auth, (firebaseUser: User | null) => {
-    const { setUser, setLoading } = useAuthStore.getState();
-    
-    if (firebaseUser) {
-      const authUser: AuthUser = {
-        uid: firebaseUser.uid,
-        createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
-        isAnonymous: firebaseUser.isAnonymous,
-      };
-      
-      setUser(authUser);
-      console.log('🔄 Auth state changed - User authenticated:', authUser.uid);
-    } else {
-      setUser(null);
-      console.log('🔄 Auth state changed - User signed out');
-    }
-    
-    setLoading(false);
-  });
-};
-
 // Custom hook for easy access to auth state
 export const useAuth = () => {
   const store = useAuthStore();
@@ -156,8 +244,12 @@ export const useAuth = () => {
     isLoading: store.isLoading,
     isAuthenticated: store.isAuthenticated,
     error: store.error,
-    signInAnonymous: store.signInAnonymous,
-    signOut: store.signOut,
+    login: store.login,
+    logout: store.logout,
+    updateUsername: store.updateUsername,
+    updateGameStats: store.updateGameStats,
+    syncUserData: store.syncUserData,
+    checkAuthStatus: store.checkAuthStatus,
     clearError: store.clearError,
   };
 };

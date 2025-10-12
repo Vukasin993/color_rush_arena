@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection - korisničke profile i statistike
+    match /users/{userId} {
+      allow read: if true; // svako može pročitati profile (za leaderboard)
+      allow write: if request.auth != null && request.auth.uid == userId; // samo vlasnik može menjati svoj profil
+      allow create: if request.auth != null; // samo ulogovani mogu kreirati profil
+    }
+    
+    // Leaderboards collection - rezultati igara
+    match /leaderboards/{gameType} {
+      match /scores/{scoreId} {
+        allow read: if true; // svi mogu čitati leaderboard
+        allow create: if request.auth != null 
+          && request.auth.uid == resource.data.userId; // samo vlasnik može dodati svoj rezultat
+        allow update: if false; // rezultati se ne mogu menjati nakon dodavanja
+        allow delete: if false; // rezultati se ne brišu
+      }
+    }
+    
+    // Game sessions - trenutne sesije igranja (ako treba)
+    match /sessions/{sessionId} {
+      allow read, write: if request.auth != null 
+        && request.auth.uid == resource.data.userId; // samo vlasnik sesije
+    }
+    
+    // Global stats - globalne statistike
+    match /globalStats/{statType} {
+      allow read: if true; // svi mogu čitati globalne stats
+      allow write: if false; // samo server može menjati (security rules ne mogu)
+    }
+    
+    // Achievements - dostignuća korisnika
+    match /achievements/{userId} {
+      allow read: if true; // svi mogu videti dostignuća
+      allow write: if request.auth != null && request.auth.uid == userId; // samo vlasnik
+    }
+    
+    // Game configurations - konfiguracije igre
+    match /gameConfigs/{configId} {
+      allow read: if true; // svi mogu čitati konfiguracije
+      allow write: if false; // samo admin može menjati (kroz admin panel)
+    }
+    
+    // Reports - prijave nepravilnosti
+    match /reports/{reportId} {
+      allow read: if false; // samo admin može čitati prijave
+      allow create: if request.auth != null; // ulogovani mogu prijaviti
+      allow update, delete: if false; // ne mogu se menjati
+    }
+    
+    // Deny sve ostalo što nije eksplicitno dozvoljeno
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

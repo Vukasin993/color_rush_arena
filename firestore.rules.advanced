@@ -1,0 +1,100 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions za validaciju
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    function isValidScore(score) {
+      return score is int && score >= 0 && score <= 1000; // max score limit
+    }
+    
+    function isValidXP(xp) {
+      return xp is int && xp >= 0 && xp <= 500; // max XP per game
+    }
+    
+    function isValidUsername(username) {
+      return username is string && username.size() >= 3 && username.size() <= 20;
+    }
+    
+    // Users collection - korisničke profile i statistike
+    match /users/{userId} {
+      allow read: if true; // svako može pročitati profile za leaderboard
+      
+      allow create: if isAuthenticated() 
+        && request.auth.uid == userId
+        && isValidUsername(request.resource.data.username)
+        && request.resource.data.totalXP == 0
+        && request.resource.data.totalGames == 0;
+      
+      allow update: if isOwner(userId)
+        && isValidUsername(request.resource.data.username)
+        && request.resource.data.totalXP >= resource.data.totalXP // XP može samo rasti
+        && request.resource.data.totalGames >= resource.data.totalGames; // games count može samo rasti
+        
+      allow delete: if false; // profili se ne brišu
+    }
+    
+    // Leaderboards collection - rezultati igara
+    match /leaderboards/{scoreId} {
+      allow read: if true; // svi mogu čitati leaderboard
+      
+      allow create: if isAuthenticated()
+        && isOwner(request.resource.data.userId)
+        && isValidScore(request.resource.data.score)
+        && isValidXP(request.resource.data.xpEarned)
+        && request.resource.data.gameType in ['colorMatch', 'reactionTap']
+        && request.resource.data.level in ['easy', 'medium', 'hard']
+        && request.resource.data.timestamp == request.time;
+      
+      allow update, delete: if false; // rezultati su nepromenjivi
+    }
+    
+    // Game sessions - trenutne sesije (za multiplayer u budućnosti)
+    match /sessions/{sessionId} {
+      allow read, write: if isAuthenticated() 
+        && isOwner(resource.data.userId);
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Global stats - samo čitanje
+    match /globalStats/{statType} {
+      allow read: if true;
+      allow write: if false; // samo server functions mogu pisati
+    }
+    
+    // Achievements
+    match /achievements/{userId} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+    }
+    
+    // Game configurations
+    match /gameConfigs/{configId} {
+      allow read: if true;
+      allow write: if false; // samo admin
+    }
+    
+    // User feedback/reports
+    match /reports/{reportId} {
+      allow read: if false; // samo admin
+      allow create: if isAuthenticated()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.timestamp == request.time;
+      allow update, delete: if false;
+    }
+    
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

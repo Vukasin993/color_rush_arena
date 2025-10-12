@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -46,22 +46,22 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
   const [selectedLevel, setSelectedLevel] = useState<'easy' | 'medium' | 'hard'>(level || 'easy');
   
   // Fetch scores from Firebase
-  const fetchScores = React.useCallback(async (showRefresh = false) => {
-    if (showRefresh) setRefreshing(true);
-    else setLoading(true);
+  const fetchScores = useCallback(async (isRefreshing = false) => {
+    if (isRefreshing) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     
     try {
       let scores: LeaderboardEntry[] = [];
       
       if (selectedGame === 'all') {
-        // Get scores for both games
-        const [colorScores, reactionScores] = await Promise.all([
-          leaderboardService.getTopScores('colorMatch', selectedLevel, 50),
-          leaderboardService.getTopScores('reactionTap', selectedLevel, 50)
-        ]);
-        scores = [...colorScores, ...reactionScores].sort((a, b) => b.score - a.score).slice(0, 100);
+        // Get top players by total XP
+        scores = await leaderboardService.getTopPlayersByXP(100);
       } else {
-        scores = await leaderboardService.getTopScores(selectedGame, selectedLevel, 100);
+        // Get top players by specific game score
+        scores = await leaderboardService.getTopPlayersByGameScore(selectedGame as 'colorMatch' | 'reactionTap', 100);
       }
       
       setFirebaseScores(scores);
@@ -73,7 +73,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedGame, selectedLevel]);
+  }, [selectedGame]);
 
   useEffect(() => {
     fetchScores();
@@ -86,15 +86,28 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
   // Convert Firebase scores to display format
   const getDisplayScores = (): ScoreEntry[] => {
     if (firebaseScores.length > 0) {
-      return firebaseScores.map(score => ({
-        id: score.id || score.userId + score.timestamp.getTime(),
-        game: score.gameType === 'colorMatch' ? 'Color Match' : 'Reaction Tap',
-        score: score.score,
-        date: score.timestamp.toISOString().split('T')[0],
-        emoji: score.gameType === 'colorMatch' ? '🎨' : '⚡',
-        level: score.level,
-        userId: score.userId,
-      }));
+      return firebaseScores.map((player, index) => {
+        let score;
+        
+        if (selectedGame === 'all') {
+          // Show total XP for "all games" view
+          score = player.totalXP;
+        } else {
+          // Show best score for specific game
+          const gameStats = selectedGame === 'colorMatch' ? player.colorMatchStats : player.reactionTapStats;
+          score = gameStats.bestScore;
+        }
+        
+        return {
+          id: player.uid + '_' + index,
+          game: selectedGame === 'all' ? 'Total XP' : (selectedGame === 'colorMatch' ? 'Color Match' : 'Reaction Tap'),
+          score: score,
+          date: new Date().toISOString().split('T')[0], // Current date since we don't have specific game date
+          emoji: selectedGame === 'all' ? '🏆' : (selectedGame === 'colorMatch' ? '🎨' : '⚡'),
+          level: 'all', // Not level-specific anymore
+          userId: player.uid,
+        };
+      });
     }
     
     // Fall back to local scores
