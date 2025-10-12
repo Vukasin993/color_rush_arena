@@ -2,13 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   StatusBar,
   Vibration,
-  TouchableOpacity,
   StyleSheet,
-  Text,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -62,13 +58,25 @@ const getColorsForLevel = (level: "easy" | "medium" | "hard"): ColorData[] => {
   }
 };
 
-const GAME_DURATION = 30;
+const getGameDuration = (level: string) => {
+  switch (level) {
+    case 'easy':
+      return 30;
+    case 'medium':
+      return 45;
+    case 'hard':
+      return 30;
+    default:
+      return 30;
+  }
+};
 
 export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
   navigation,
   route,
 }) => {
   const { level = "easy", autoStart = false } = route.params || {};
+  const GAME_DURATION = getGameDuration(level);
   const { currentGame, startGame, endGame, updateScore } = useGame();
 
   const COLORS = getColorsForLevel(level);
@@ -127,7 +135,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
     scoreRef.current = 0;
     startGame("colorMatch", level);
     generateNewRound();
-  }, [startGame, level, generateNewRound]);
+  }, [startGame, level, generateNewRound, GAME_DURATION]);
 
   useEffect(() => {
     if (autoStart && !gameStarted) {
@@ -156,7 +164,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
         }
       };
     }
-  }, [gameStarted, handleGameOver]);
+  }, [gameStarted, handleGameOver, GAME_DURATION]);
 
   // 🔹 Color press logic
   const handleColorPress = useCallback(
@@ -206,7 +214,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
       cancelAnimation(pulseAnimation);
       cancelAnimation(shakeAnimation);
     };
-  }, []);
+  }, [pulseAnimation, shakeAnimation]);
 
   // 🔹 Animated styles
   const shakeStyle = useAnimatedStyle(() => ({
@@ -234,6 +242,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
         timeLeft={timeLeft}
         score={currentGame.score}
         totalTime={GAME_DURATION}
+        onPause={() => navigation.goBack()}
       />
       <Animated.View style={[styles.gameArea, shakeStyle]}>
         <WordDisplay
@@ -243,19 +252,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
         />
         <ColorButtons colors={COLORS} onColorPress={handleColorPress} />
       </Animated.View>
-      <TouchableOpacity
-        style={styles.pauseButton}
-        onPress={() => navigation.goBack()}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={["rgba(142, 45, 226, 0.3)", "rgba(74, 0, 224, 0.3)"]}
-          style={styles.pauseButtonGradient}
-        >
-          <Ionicons name="pause" size={20} color="#FFFFFF" />
-          <Text style={styles.pauseButtonText}>Pause</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+
     </SafeAreaView>
   );
 };
@@ -263,29 +260,4 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0F0F1B" },
   gameArea: { flex: 1, justifyContent: "center", padding: 20 },
-  pauseButton: {
-    position: "absolute",
-    bottom: 20,
-    right: 20,
-    borderRadius: 15,
-    elevation: 8,
-    shadowColor: "#8E2DE2",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-  },
-  pauseButtonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 15,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "rgba(142, 45, 226, 0.5)",
-  },
-  pauseButtonText: {
-    fontSize: 14,
-    color: "#FFFFFF",
-  },
 });

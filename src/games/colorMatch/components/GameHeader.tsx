@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import {
   useFonts,
   Orbitron_400Regular,
@@ -10,12 +12,14 @@ interface GameHeaderProps {
   timeLeft: number;
   score: number;
   totalTime: number;
+  onPause?: () => void;
 }
 
 export const GameHeader: React.FC<GameHeaderProps> = ({
   timeLeft,
   score,
   totalTime,
+  onPause,
 }) => {
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
@@ -43,6 +47,21 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
         <Text style={styles.scoreLabel}>Score</Text>
         <Text style={styles.scoreText}>{score}</Text>
       </View>
+
+      {onPause && (
+        <TouchableOpacity
+          style={styles.pauseButton}
+          activeOpacity={0.8}
+          onPress={onPause}
+        >
+          <LinearGradient
+            colors={['rgba(255, 59, 48, 0.8)', 'rgba(255, 45, 85, 0.6)']}
+            style={styles.pauseButtonGradient}
+          >
+            <Ionicons name="pause" size={16} color="#FFFFFF" />
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -105,5 +124,23 @@ const styles = StyleSheet.create({
     textShadowColor: '#FFD60A',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
+  },
+  pauseButton: {
+    borderRadius: 20,
+    marginLeft: 15,
+    elevation: 4,
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  pauseButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 48, 0.3)',
   },
 });
