@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import {
   useFonts,
@@ -29,7 +29,8 @@ export const WordDisplay: React.FC<WordDisplayProps> = ({
     Orbitron_700Bold,
   });
 
-  const pulseStyle = useAnimatedStyle(() => ({
+  // ✅ Pulse animacija — bez .value u JSX
+  const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseAnimation.value }],
   }));
 
@@ -37,17 +38,20 @@ export const WordDisplay: React.FC<WordDisplayProps> = ({
 
   return (
     <View style={styles.wordContainer}>
-      <Text style={styles.instructionText}>What COLOR is this WORD?</Text>
-      <Animated.View style={pulseStyle}>
-        <Text
-          style={[
-            styles.colorWord,
-            { color: currentTextColor }
-          ]}
-        >
-          {currentWord.name}
-        </Text>
-      </Animated.View>
+      <Animated.Text style={[styles.instructionText]}>
+        What COLOR is this WORD?
+      </Animated.Text>
+
+      {/* ✅ Umesto <Animated.View> + <Text> → jedan Animated.Text */}
+      <Animated.Text
+        style={[
+          styles.colorWord,
+          animatedStyle,
+          { color: currentTextColor },
+        ]}
+      >
+        {currentWord.name}
+      </Animated.Text>
     </View>
   );
 };

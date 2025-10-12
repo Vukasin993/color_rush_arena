@@ -17,7 +17,6 @@ import Animated, {
   withTiming,
   withDelay,
   withSequence,
-  interpolate,
 } from "react-native-reanimated";
 import {
   useFonts,
@@ -64,7 +63,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
     try {
       await leaderboardService.submitScore({
-        userId: "anonymous_user", // TODO: Replace with actual user ID when auth is implemented
+        userId: "anonymous_user", // TODO: replace with real userId when auth is implemented
         gameType,
         level,
         score,
@@ -90,13 +89,10 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
   useEffect(() => {
     if (!initializedRef.current) {
-      // Reset current game state only once
       resetCurrentGame();
-
-      // Submit score to Firebase only once
       submitScoreToFirebase();
 
-      // Start animations only once
+      // Start animations
       fadeAnimation.value = withTiming(1, { duration: 500 });
       slideAnimation.value = withTiming(0, { duration: 600 });
       scaleAnimation.value = withDelay(
@@ -107,13 +103,28 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         )
       );
       xpAnimation.value = withDelay(800, withTiming(1, { duration: 1000 }));
-
-      // Start glow animation for score
       glowAnimation.value = withTiming(1, { duration: 1500 });
-      
+
       initializedRef.current = true;
     }
-  }, [fadeAnimation, slideAnimation, scaleAnimation, xpAnimation, glowAnimation, resetCurrentGame, submitScoreToFirebase]);
+
+    // Cleanup on unmount
+    return () => {
+      fadeAnimation.value = 0;
+      slideAnimation.value = 0;
+      scaleAnimation.value = 0;
+      xpAnimation.value = 0;
+      glowAnimation.value = 0;
+    };
+  }, [
+    fadeAnimation,
+    slideAnimation,
+    scaleAnimation,
+    xpAnimation,
+    glowAnimation,
+    resetCurrentGame,
+    submitScoreToFirebase,
+  ]);
 
   const getGameInfo = () => {
     switch (gameType) {
@@ -155,7 +166,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     return "LEGENDARY!";
   };
 
-  // Animation styles
+  // --- ANIMATED STYLES ---
+
   const fadeStyle = useAnimatedStyle(() => ({
     opacity: fadeAnimation.value,
   }));
@@ -168,16 +180,10 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     transform: [{ scale: scaleAnimation.value }],
   }));
 
-  const xpStyle = useAnimatedStyle(() => {
-    const widthPercentage = interpolate(
-      xpAnimation.value,
-      [0, 1],
-      [0, 100]
-    );
-    return {
-      width: `${widthPercentage}%`,
-    };
-  });
+  // ✅ Replaced width interpolation with scaleX for XP bar
+  const xpStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleX: xpAnimation.value }],
+  }));
 
   const glowStyle = useAnimatedStyle(() => ({
     textShadowColor: gameInfo.color[0],
@@ -198,7 +204,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <Animated.View style={[styles.content, fadeStyle]}>
-          {/* Header */}
+          {/* HEADER */}
           <Animated.View style={[styles.header, slideStyle]}>
             <Text style={styles.gameOverTitle}>Game Over!</Text>
             <Text style={styles.gameTitle}>
@@ -206,7 +212,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             </Text>
           </Animated.View>
 
-          {/* Score Section */}
+          {/* SCORE */}
           <Animated.View style={[styles.scoreSection, scaleStyle]}>
             <LinearGradient
               colors={gameInfo.color}
@@ -226,7 +232,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             </LinearGradient>
           </Animated.View>
 
-          {/* XP Section */}
+          {/* XP */}
           <Animated.View style={[styles.xpSection, slideStyle]}>
             <Text style={styles.xpLabel}>XP Earned</Text>
             <View style={styles.xpContainer}>
@@ -237,7 +243,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             </View>
           </Animated.View>
 
-          {/* Stats Section */}
+          {/* STATS */}
           <Animated.View style={[styles.statsSection, slideStyle]}>
             <Text style={styles.statsTitle}>Your Stats</Text>
             <View style={styles.statsGrid}>
@@ -260,12 +266,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             </View>
           </Animated.View>
 
-          {/* Action Buttons */}
+          {/* BUTTONS */}
           <Animated.View style={[styles.buttonsContainer, slideStyle]}>
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={() => {
-                // Navigate back to the specific game with the same level and auto-start
                 navigation.reset({
                   index: 1,
                   routes: [
@@ -290,21 +295,9 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={() => {
-                // Push to leaderboard without resetting stack
-                navigation.push("LeaderboardScreen", { gameType, level });
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.secondaryButtonText}>View Leaderboard</Text>
-            </TouchableOpacity> */}
-
             <TouchableOpacity
               style={styles.homeButton}
               onPress={() => {
-                // Use reset to completely clear navigation stack
                 navigation.reset({
                   index: 0,
                   routes: [{ name: "MainTabs" }],
@@ -322,6 +315,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   );
 };
 
+// --- STYLES ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -431,7 +425,7 @@ const styles = StyleSheet.create({
   xpBarBg: {
     width: "100%",
     height: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 6,
     overflow: "hidden",
     marginBottom: 10,
@@ -440,6 +434,7 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: "#00FFC6",
     borderRadius: 6,
+    transformOrigin: "left", // <- bitno za scaleX
   },
   xpValue: {
     fontSize: 18,
@@ -467,12 +462,12 @@ const styles = StyleSheet.create({
   },
   statItem: {
     width: "48%",
-    backgroundColor: "rgba(26, 26, 46, 0.6)",
+    backgroundColor: "rgba(26,26,46,0.6)",
     borderRadius: 15,
     padding: 15,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(142, 45, 226, 0.3)",
+    borderColor: "rgba(142,45,226,0.3)",
   },
   statValue: {
     fontSize: 20,
@@ -510,28 +505,14 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
-  secondaryButton: {
-    backgroundColor: "rgba(142, 45, 226, 0.2)",
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: "rgba(142, 45, 226, 0.4)",
-    paddingVertical: 16,
-    paddingHorizontal: 40,
-    alignItems: "center",
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontFamily: "Orbitron_400Regular",
-    color: "#8E2DE2",
-  },
   homeButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(184, 184, 209, 0.1)",
+    backgroundColor: "rgba(184,184,209,0.1)",
     borderRadius: 25,
     borderWidth: 1,
-    borderColor: "rgba(184, 184, 209, 0.3)",
+    borderColor: "rgba(184,184,209,0.3)",
     paddingVertical: 14,
     paddingHorizontal: 40,
     gap: 8,
