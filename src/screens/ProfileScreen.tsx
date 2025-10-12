@@ -18,12 +18,15 @@ import {
   Orbitron_700Bold,
 } from '@expo-google-fonts/orbitron';
 import { useAuth } from '../store/useAuthStore';
+import { CustomModal } from '../components/CustomModal';
 
 export const ProfileScreen: React.FC = () => {
   const { user, updateUsername, deleteAccount } = useAuth();
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState(user?.username || '');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showFinalDeleteModal, setShowFinalDeleteModal] = useState(false);
 
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
@@ -63,58 +66,26 @@ export const ProfileScreen: React.FC = () => {
 
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      '🗑️ Delete Account',
-      `⚠️ PERMANENT ACTION WARNING ⚠️
+    setShowDeleteModal(true);
+  };
 
-This will PERMANENTLY delete:
-• All your game progress and scores
-• ${user?.totalXP || 0} XP and Level ${Math.floor((user?.totalXP || 0) / 1000) + 1} status
-• ${user?.totalGames || 0} game records and statistics
-• Your account and username "${user?.username}"
+  const handleConfirmDelete = () => {
+    setShowDeleteModal(false);
+    setShowFinalDeleteModal(true);
+  };
 
-This action cannot be undone and you will be signed out immediately.
-
-Are you absolutely certain you want to proceed?`,
-      [
-        { 
-          text: 'Cancel', 
-          style: 'cancel' 
-        },
-        {
-          text: 'DELETE FOREVER',
-          style: 'destructive',
-          onPress: () => {
-            // Second confirmation
-            Alert.alert(
-              '🚨 Final Confirmation',
-              `Type your username "${user?.username}" to confirm deletion:
-
-This is your LAST CHANCE to cancel!`,
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Yes, Delete My Account',
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      await deleteAccount();
-                      // Navigate to login screen after successful deletion
-                      // The auth state change should automatically redirect
-                    } catch (error: any) {
-                      Alert.alert(
-                        'Deletion Failed', 
-                        error.message || 'Could not delete account. Please try again.'
-                      );
-                    }
-                  },
-                },
-              ]
-            );
-          },
-        },
-      ]
-    );
+  const handleFinalDelete = async () => {
+    try {
+      setShowFinalDeleteModal(false);
+      await deleteAccount();
+      // Navigate to login screen after successful deletion
+      // The auth state change should automatically redirect
+    } catch (error: any) {
+      Alert.alert(
+        'Deletion Failed', 
+        error.message || 'Could not delete account. Please try again.'
+      );
+    }
   };
 
   const getPlayerLevel = (totalXP: number) => {
@@ -313,6 +284,66 @@ This is your LAST CHANCE to cancel!`,
         {/* Bottom Spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Delete Account Modal */}
+      <CustomModal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Delete Account"
+        message={`⚠️ PERMANENT ACTION WARNING ⚠️
+
+This will PERMANENTLY delete:
+• All your game progress and scores
+• ${user?.totalXP || 0} XP and Level ${Math.floor((user?.totalXP || 0) / 1000) + 1} status
+• ${user?.totalGames || 0} game records and statistics
+• Your account and username "${user?.username}"
+
+This action cannot be undone and you will be signed out immediately.
+
+Are you absolutely certain you want to proceed?`}
+        icon="warning"
+        iconColor="#FF3B30"
+        buttons={[
+          {
+            text: 'Cancel',
+            onPress: () => setShowDeleteModal(false),
+            style: 'secondary',
+          },
+          {
+            text: 'DELETE FOREVER',
+            onPress: handleConfirmDelete,
+            style: 'destructive',
+          },
+        ]}
+      />
+
+      {/* Final Confirmation Modal */}
+      <CustomModal
+        visible={showFinalDeleteModal}
+        onClose={() => setShowFinalDeleteModal(false)}
+        title="Final Confirmation"
+        message={`🚨 LAST CHANCE TO CANCEL! 🚨
+
+You are about to permanently delete your account "${user?.username}".
+
+This is your FINAL WARNING - this action cannot be undone!
+
+Are you absolutely sure you want to delete your account forever?`}
+        icon="skull"
+        iconColor="#8B0000"
+        buttons={[
+          {
+            text: 'Cancel',
+            onPress: () => setShowFinalDeleteModal(false),
+            style: 'secondary',
+          },
+          {
+            text: 'Yes, Delete My Account',
+            onPress: handleFinalDelete,
+            style: 'destructive',
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 };

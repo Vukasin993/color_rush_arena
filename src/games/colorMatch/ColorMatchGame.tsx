@@ -22,6 +22,7 @@ import { GameStartScreen } from "./components/GameStartScreen";
 import { GameHeader } from "./components/GameHeader";
 import { WordDisplay } from "./components/WordDisplay";
 import { ColorButtons } from "./components/ColorButtons";
+import { PauseModal } from "../../components/PauseModal";
 
 type ColorMatchGameProps = NativeStackScreenProps<
   RootStackParamList,
@@ -44,6 +45,14 @@ const ALL_COLORS = [
   { name: "PINK", value: "#FF2D92", textColor: "#FF69B4" },
   { name: "CYAN", value: "#00C7BE", textColor: "#4FD1C7" },
 ];
+
+// XP calculation function
+const calculateXPEarned = (score: number, level: 'easy' | 'medium' | 'hard'): number => {
+  const baseXP = score * 10;
+  const levelMultiplier = level === 'easy' ? 1 : level === 'medium' ? 1.5 : 2;
+  const bonus = score > 20 ? 100 : 0;
+  return Math.round(baseXP * levelMultiplier + bonus);
+};
 
 const getColorsForLevel = (level: "easy" | "medium" | "hard"): ColorData[] => {
   switch (level) {
@@ -92,6 +101,8 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
   );
   const [gameStarted, setGameStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
+  const [isPaused, setIsPaused] = useState(false);
+  const [showPauseModal, setShowPauseModal] = useState(false);
 
   const timeLeftRef = useRef(GAME_DURATION);
   const startTimeRef = useRef<number | null>(null);
@@ -111,27 +122,81 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
   const scoreRef = useRef(0);
 
   // 🔹 Game Over — stop animations before navigating
-  const handleGameOver = useCallback(() => {
-    // ✅ Cancel animations before navigating
-    cancelAnimation(pulseAnimation);
-    cancelAnimation(shakeAnimation);
-
+    const handlePause = () => {
+    if (!gameStarted || isPaused) return;
+    setIsPaused(true);
+    setShowPauseModal(true);
+    
+    // Clear the interval to stop the timer
     if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+      clearInterval(intervalRef.current as NodeJS.Timeout);
+      intervalRef.current = null;
+    }
+  };
+
+  const handleResume = () => {
+    setShowPauseModal(false);
+    setIsPaused(false);
+    // Resume the timer
+    if (!intervalRef.current && timeLeft > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            handleGameOver();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
+  const handleWatchAd = () => {
+    // Simulate watching an ad
+    console.log('Watching ad to resume game...');
+    // In a real app, you would integrate with an ad network here
+    setTimeout(() => {
+      handleResume();
+    }, 1000); // Simulate ad duration
+  };
+
+  const handleExitGame = () => {
+    setShowPauseModal(false);
+    setIsPaused(false);
+    setGameStarted(false);
+    
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current as NodeJS.Timeout);
+      intervalRef.current = null;
+    }
+    
+    navigation.goBack();
+  };
+
+  const handleGameOver = useCallback(() => {
+    if (!gameStarted) return;
+    
+    // Clear any ongoing intervals
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current as NodeJS.Timeout);
       intervalRef.current = null;
     }
 
-    const finalScore = scoreRef.current;
-    endGame(finalScore);
-    console.log("Game Over! Final Score:", finalScore);
+    const score = currentGame.score;
+    const xpEarned = calculateXPEarned(score, level);
 
-    navigation.navigate("GameOverScreen", {
-      gameType: "colorMatch",
+    setGameStarted(false);
+    endGame(score);
+    
+    console.log('✅ GameOver - navigating with:', { gameType: 'colorMatch', level, score, xpEarned });
+    
+    navigation.replace('GameOverScreen', {
+      gameType: 'colorMatch',
       level,
-      score: finalScore,
-      xpEarned: finalScore * 10 + (finalScore > 20 ? 100 : 0),
+      score,
+      xpEarned,
     });
-  }, [endGame, navigation, level, pulseAnimation, shakeAnimation]);
+  }, [gameStarted, currentGame.score, level, endGame, navigation]);
 
   const handleStartGame = useCallback(() => {
     setGameStarted(true);
@@ -248,7 +313,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
         timeLeft={timeLeft}
         score={currentGame.score}
         totalTime={GAME_DURATION}
-        onPause={() => navigation.goBack()}
+        onPause={handlePause}
       />
       <Animated.View style={[styles.gameArea, shakeStyle]}>
         <WordDisplay
@@ -259,6 +324,12 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
         <ColorButtons colors={COLORS} onColorPress={handleColorPress} />
       </Animated.View>
 
+      <PauseModal
+        visible={showPauseModal}
+        onResume={handleResume}
+        onWatchAd={handleWatchAd}
+        onExit={handleExitGame}
+      />
     </SafeAreaView>
   );
 };
