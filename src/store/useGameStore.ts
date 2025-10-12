@@ -8,11 +8,17 @@ interface GameStats {
   totalXP: number;
   averageScore: number;
   gameHistory: GameResult[];
+  unlockedLevels: {
+    easy: boolean;
+    medium: boolean;
+    hard: boolean;
+  };
 }
 
 interface GameResult {
   id: string;
   gameType: 'colorMatch' | 'reactionTap' | 'colorSnake';
+  level: 'easy' | 'medium' | 'hard';
   score: number;
   xpEarned: number;
   date: string;
@@ -28,23 +34,27 @@ interface GameStore {
   // Current Game State
   currentGame: {
     type: 'colorMatch' | 'reactionTap' | 'colorSnake' | null;
+    level: 'easy' | 'medium' | 'hard';
     score: number;
     timeRemaining: number;
     isPlaying: boolean;
   };
   
   // Actions
-  startGame: (gameType: 'colorMatch' | 'reactionTap' | 'colorSnake') => void;
+  startGame: (gameType: 'colorMatch' | 'reactionTap' | 'colorSnake', level?: 'easy' | 'medium' | 'hard') => void;
   endGame: (finalScore: number) => void;
   updateScore: (points: number) => void;
   updateTimer: (time: number) => void;
   addGameResult: (result: Omit<GameResult, 'id' | 'date'>) => void;
   resetCurrentGame: () => void;
+  unlockLevel: (gameType: 'colorMatch' | 'reactionTap', level: 'medium' | 'hard') => void;
+  checkLevelUnlock: (gameType: 'colorMatch' | 'reactionTap', totalXP: number) => void;
   
   // Getters
   getTotalGamesPlayed: () => number;
   getBestOverallScore: () => number;
   getGameStats: (gameType: 'colorMatch' | 'reactionTap') => GameStats;
+  isLevelUnlocked: (gameType: 'colorMatch' | 'reactionTap', level: 'easy' | 'medium' | 'hard') => boolean;
 }
 
 const initialStats: GameStats = {
@@ -53,6 +63,17 @@ const initialStats: GameStats = {
   totalXP: 0,
   averageScore: 0,
   gameHistory: [],
+  unlockedLevels: {
+    easy: true,
+    medium: false,
+    hard: false,
+  },
+};
+
+// XP requirements for level unlocks
+const LEVEL_UNLOCK_REQUIREMENTS = {
+  medium: 500, // 500 XP to unlock medium
+  hard: 1500,  // 1500 XP to unlock hard
 };
 
 export const useGameStore = create<GameStore>()(
@@ -64,16 +85,18 @@ export const useGameStore = create<GameStore>()(
       totalXP: 0,
       currentGame: {
         type: null,
+        level: 'easy',
         score: 0,
         timeRemaining: 30,
         isPlaying: false,
       },
 
       // Actions
-      startGame: (gameType) => {
+      startGame: (gameType, level = 'easy') => {
         set({
           currentGame: {
             type: gameType,
+            level,
             score: 0,
             timeRemaining: 30,
             isPlaying: true,
@@ -84,6 +107,7 @@ export const useGameStore = create<GameStore>()(
       endGame: (finalScore) => {
         const state = get();
         const gameType = state.currentGame.type;
+        const level = state.currentGame.level;
         
         if (gameType && (gameType === 'colorMatch' || gameType === 'reactionTap')) {
           // Calculate XP (score * 10 + bonus for high scores)
@@ -92,6 +116,7 @@ export const useGameStore = create<GameStore>()(
           // Add game result
           get().addGameResult({
             gameType,
+            level,
             score: finalScore,
             xpEarned,
             duration: 30,
@@ -144,6 +169,21 @@ export const useGameStore = create<GameStore>()(
           const newBestScore = Math.max(currentStats.bestScore, result.score);
           const newTotalXP = currentStats.totalXP + result.xpEarned;
           const newAverageScore = newHistory.reduce((sum, game) => sum + game.score, 0) / newHistory.length;
+          const totalXPNew = state.totalXP + result.xpEarned;
+
+          // Check for level unlocks
+          const currentUnlockedLevels = currentStats.unlockedLevels || {
+            easy: true,
+            medium: false,
+            hard: false,
+          };
+          const newUnlockedLevels = { ...currentUnlockedLevels };
+          if (newTotalXP >= LEVEL_UNLOCK_REQUIREMENTS.medium && !newUnlockedLevels.medium) {
+            newUnlockedLevels.medium = true;
+          }
+          if (newTotalXP >= LEVEL_UNLOCK_REQUIREMENTS.hard && !newUnlockedLevels.hard) {
+            newUnlockedLevels.hard = true;
+          }
 
           const updatedStats: GameStats = {
             totalGames: newTotalGames,
@@ -151,12 +191,13 @@ export const useGameStore = create<GameStore>()(
             totalXP: newTotalXP,
             averageScore: Math.round(newAverageScore * 10) / 10,
             gameHistory: newHistory,
+            unlockedLevels: newUnlockedLevels,
           };
 
           return {
             ...state,
             [gameType === 'colorMatch' ? 'colorMatchStats' : 'reactionTapStats']: updatedStats,
-            totalXP: state.totalXP + result.xpEarned,
+            totalXP: totalXPNew,
           };
         });
       },
@@ -165,11 +206,73 @@ export const useGameStore = create<GameStore>()(
         set({
           currentGame: {
             type: null,
+            level: 'easy',
             score: 0,
             timeRemaining: 30,
             isPlaying: false,
           },
         });
+      },
+
+      unlockLevel: (gameType, level) => {
+        set((state) => {
+          const currentStats = gameType === 'colorMatch' 
+            ? state.colorMatchStats 
+            : state.reactionTapStats;
+
+          const currentUnlockedLevels = currentStats.unlockedLevels || {
+            easy: true,
+            medium: false,
+            hard: false,
+          };
+
+          const updatedStats = {
+            ...currentStats,
+            unlockedLevels: {
+              ...currentUnlockedLevels,
+              [level]: true,
+            },
+          };
+
+          return {
+            ...state,
+            [gameType === 'colorMatch' ? 'colorMatchStats' : 'reactionTapStats']: updatedStats,
+          };
+        });
+      },
+
+      checkLevelUnlock: (gameType, totalXP) => {
+        const state = get();
+        const currentStats = gameType === 'colorMatch' 
+          ? state.colorMatchStats 
+          : state.reactionTapStats;
+
+        const currentUnlockedLevels = currentStats.unlockedLevels || {
+          easy: true,
+          medium: false,
+          hard: false,
+        };
+
+        if (totalXP >= LEVEL_UNLOCK_REQUIREMENTS.medium && !currentUnlockedLevels.medium) {
+          get().unlockLevel(gameType, 'medium');
+        }
+        if (totalXP >= LEVEL_UNLOCK_REQUIREMENTS.hard && !currentUnlockedLevels.hard) {
+          get().unlockLevel(gameType, 'hard');
+        }
+      },
+
+      isLevelUnlocked: (gameType, level) => {
+        const state = get();
+        const currentStats = gameType === 'colorMatch' 
+          ? state.colorMatchStats 
+          : state.reactionTapStats;
+        
+        // Handle case where unlockedLevels might not exist in persisted data
+        if (!currentStats.unlockedLevels) {
+          return level === 'easy'; // Only easy is unlocked by default
+        }
+        
+        return currentStats.unlockedLevels[level];
       },
 
       // Getters
@@ -196,6 +299,27 @@ export const useGameStore = create<GameStore>()(
         reactionTapStats: state.reactionTapStats,
         totalXP: state.totalXP,
       }),
+      migrate: (persistedState: any, version: number) => {
+        // Ensure unlockedLevels exists in persisted stats
+        if (persistedState && typeof persistedState === 'object') {
+          if (persistedState.colorMatchStats && !persistedState.colorMatchStats.unlockedLevels) {
+            persistedState.colorMatchStats.unlockedLevels = {
+              easy: true,
+              medium: false,
+              hard: false,
+            };
+          }
+          if (persistedState.reactionTapStats && !persistedState.reactionTapStats.unlockedLevels) {
+            persistedState.reactionTapStats.unlockedLevels = {
+              easy: true,
+              medium: false,
+              hard: false,
+            };
+          }
+        }
+        return persistedState;
+      },
+      version: 1,
     }
   )
 );
@@ -218,9 +342,14 @@ export const useGame = () => {
     updateScore: store.updateScore,
     updateTimer: store.updateTimer,
     resetCurrentGame: store.resetCurrentGame,
+    addGameResult: store.addGameResult,
+    unlockLevel: store.unlockLevel,
+    checkLevelUnlock: store.checkLevelUnlock,
+    isLevelUnlocked: store.isLevelUnlocked,
     
     // Computed values
     totalGames: store.getTotalGamesPlayed(),
     bestScore: store.getBestOverallScore(),
+    getGameStats: store.getGameStats,
   };
 };

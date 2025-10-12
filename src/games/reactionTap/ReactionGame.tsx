@@ -7,6 +7,7 @@ import {
   StatusBar,
   Vibration,
   Pressable,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -52,12 +53,46 @@ const GAME_COLORS: GameColors[] = [
 ];
 
 const TOTAL_ROUNDS = 5;
-const MIN_WAIT_TIME = 1000; // 1 second
-const MAX_WAIT_TIME = 2000; // 2 seconds
+
+const getLevelConfig = (level: 'easy' | 'medium' | 'hard') => {
+  switch (level) {
+    case 'easy':
+      return {
+        minWaitTime: 1500,
+        maxWaitTime: 3000,
+        targetShowTime: 3000,
+        scoreMultiplier: 1,
+      };
+    case 'medium':
+      return {
+        minWaitTime: 1000,
+        maxWaitTime: 2000,
+        targetShowTime: 2000,
+        scoreMultiplier: 1.5,
+      };
+    case 'hard':
+      return {
+        minWaitTime: 500,
+        maxWaitTime: 1500,
+        targetShowTime: 1000,
+        scoreMultiplier: 2,
+      };
+    default:
+      return {
+        minWaitTime: 1500,
+        maxWaitTime: 3000,
+        targetShowTime: 3000,
+        scoreMultiplier: 1,
+      };
+  }
+};
+
 const PENALTY_MS = 100;
 
-export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation }) => {
+export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation, route }) => {
+  const { level = 'easy' } = route.params || {};
   const { startGame, endGame, updateScore } = useGame();
+  const levelConfig = getLevelConfig(level);
   
   const [gameStarted, setGameStarted] = useState(false);
   const [gamePhase, setGamePhase] = useState<'waiting' | 'target' | 'results'>('waiting');
@@ -106,10 +141,8 @@ export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation }) => {
         ? validReactions.reduce((sum, r) => sum + r.reactionTime, 0) / validReactions.length 
         : 999;
       
-      // Score based on reaction time (lower is better)
-      const score = Math.max(0, Math.round(1000 - avgReactionTime));
-      
-      endGame(score);
+    // Score based on reaction time (lower is better) with level multiplier
+    const score = Math.max(0, Math.round((1000 - avgReactionTime) * levelConfig.scoreMultiplier));      endGame(score);
       
       // Animate results
       resultAnimation.value = withTiming(1, { duration: 800 });
@@ -121,7 +154,7 @@ export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation }) => {
     setIsWaitingForTarget(true);
     
     // Random wait time before showing target
-    const waitTime = Math.random() * (MAX_WAIT_TIME - MIN_WAIT_TIME) + MIN_WAIT_TIME;
+    const waitTime = Math.random() * (levelConfig.maxWaitTime - levelConfig.minWaitTime) + levelConfig.minWaitTime;
     
     // Show random colors during wait
     const showRandomColors = () => {
@@ -169,9 +202,9 @@ export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation }) => {
           backgroundAnimation.value = withTiming(0, { duration: 300 });
           setTimeout(startNewRound, 300);
         }, 500);
-      }, 3000);
+      }, levelConfig.targetShowTime);
     }, waitTime);
-  }, [currentRound, results, targetColor, endGame, backgroundAnimation, textGlowAnimation, resultAnimation, clearTimeouts]);
+  }, [currentRound, results, targetColor, endGame, backgroundAnimation, textGlowAnimation, resultAnimation, clearTimeouts, levelConfig]);
 
   // Handle correct tap
   const handleTap = useCallback(() => {
@@ -240,10 +273,10 @@ export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation }) => {
     const randomTarget = GAME_COLORS[Math.floor(Math.random() * GAME_COLORS.length)];
     setTargetColor(randomTarget);
     
-    startGame('reactionTap');
+    startGame('reactionTap', level);
     
     setTimeout(startNewRound, 1000);
-  }, [startGame, startNewRound]);
+  }, [startGame, startNewRound, level]);
 
   // Show results screen
   const showResults = useCallback(() => {
@@ -257,10 +290,11 @@ export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation }) => {
     
     navigation.navigate('GameOverScreen', {
       gameType: 'reactionTap',
+      level,
       score,
       xpEarned,
     });
-  }, [results, navigation]);
+  }, [results, navigation, level]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -322,9 +356,26 @@ export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation }) => {
           </LinearGradient>
         </TouchableOpacity>
 
-        <View style={styles.startContainer}>
+        <ScrollView style={styles.startContainer}>
           <Text style={styles.gameTitle}>⚡ Reaction Tap</Text>
           <Text style={styles.gameSubtitle}>Lightning Fast Reflexes</Text>
+          
+          {/* Level Info */}
+          <View style={styles.levelInfoContainer}>
+            <Text style={styles.levelTitle}>
+              {level.toUpperCase()} LEVEL
+            </Text>
+            <Text style={styles.levelDescription}>
+              {level === 'easy' && 'Relaxed timing - perfect for beginners'}
+              {level === 'medium' && 'Faster reactions required'}
+              {level === 'hard' && 'Lightning speed needed!'}
+            </Text>
+            <Text style={styles.levelStats}>
+              Wait time: {levelConfig.minWaitTime/1000}s - {levelConfig.maxWaitTime/1000}s | 
+              Target time: {levelConfig.targetShowTime/1000}s | 
+              Score boost: x{levelConfig.scoreMultiplier}
+            </Text>
+          </View>
           
           <View style={styles.instructionsContainer}>
             <Text style={styles.instructionsTitle}>How to Play:</Text>
@@ -358,7 +409,7 @@ export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation }) => {
               <Text style={styles.startButtonText}>START REACTION TEST</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -510,7 +561,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   startContainer: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -769,5 +820,39 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
+  },
+  levelInfoContainer: {
+    backgroundColor: 'rgba(26, 26, 46, 0.8)',
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 214, 10, 0.3)',
+    width: '100%',
+    alignItems: 'center',
+  },
+  levelTitle: {
+    fontSize: 18,
+    fontFamily: 'Orbitron_700Bold',
+    color: '#FFD60A',
+    textAlign: 'center',
+    marginBottom: 8,
+    textShadowColor: '#FFD60A',
+    textShadowRadius: 8,
+  },
+  levelDescription: {
+    fontSize: 14,
+    fontFamily: 'Orbitron_400Regular',
+    color: '#B8B8D1',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 10,
+  },
+  levelStats: {
+    fontSize: 12,
+    fontFamily: 'Orbitron_400Regular',
+    color: '#00FFC6',
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

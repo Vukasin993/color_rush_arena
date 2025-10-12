@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,14 +23,16 @@ import {
   Orbitron_700Bold,
 } from '@expo-google-fonts/orbitron';
 import { useGame } from '../store/useGameStore';
+import { leaderboardService } from '../firebase/leaderboard';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 
 type GameOverScreenProps = NativeStackScreenProps<RootStackParamList, 'GameOverScreen'>;
 
 export const GameOverScreen: React.FC<GameOverScreenProps> = ({ navigation, route }) => {
-  const { gameType, score, xpEarned } = route.params;
+  const { gameType, score, xpEarned, level } = route.params;
   const { colorMatchStats, reactionTapStats, resetCurrentGame } = useGame();
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
   
   const gameStats = gameType === 'colorMatch' ? colorMatchStats : reactionTapStats;
   
@@ -38,15 +41,46 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ navigation, rout
   const slideAnimation = useSharedValue(50);
   const scaleAnimation = useSharedValue(0);
   const xpAnimation = useSharedValue(0);
+  const glowAnimation = useSharedValue(0);
 
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
     Orbitron_700Bold,
   });
 
+  // Submit score to Firebase
+  const submitScoreToFirebase = React.useCallback(async () => {
+    if (scoreSubmitted || score <= 0) return;
+    
+    try {
+      await leaderboardService.submitScore({
+        userId: 'anonymous_user', // TODO: Replace with actual user ID when auth is implemented
+        gameType,
+        level,
+        score,
+        xpEarned,
+        accuracy: gameType === 'colorMatch' ? Math.max(0, (score / (score + Math.abs(score - 20))) * 100) : undefined,
+        timestamp: new Date(),
+      });
+      
+      setScoreSubmitted(true);
+      console.log('✅ Score submitted successfully to Firebase');
+    } catch (error) {
+      console.error('❌ Failed to submit score:', error);
+      Alert.alert(
+        'Score Submission Failed',
+        'Could not save your score to the leaderboard. Check your internet connection.',
+        [{ text: 'OK' }]
+      );
+    }
+  }, [scoreSubmitted, score, gameType, level, xpEarned]);
+
   useEffect(() => {
     // Reset current game state
     resetCurrentGame();
+    
+    // Submit score to Firebase
+    submitScoreToFirebase();
     
     // Start animations
     fadeAnimation.value = withTiming(1, { duration: 500 });
@@ -56,7 +90,10 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ navigation, rout
       withTiming(1, { duration: 200 })
     ));
     xpAnimation.value = withDelay(800, withTiming(1, { duration: 1000 }));
-  }, [fadeAnimation, slideAnimation, scaleAnimation, xpAnimation, resetCurrentGame]);
+    
+    // Start glow animation for score
+    glowAnimation.value = withTiming(1, { duration: 1500 });
+  }, [fadeAnimation, slideAnimation, scaleAnimation, xpAnimation, glowAnimation, resetCurrentGame, submitScoreToFirebase]);
 
   const getGameInfo = () => {
     switch (gameType) {
@@ -115,6 +152,12 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ navigation, rout
     width: `${xpAnimation.value * 100}%`,
   }));
 
+  const glowStyle = useAnimatedStyle(() => ({
+    textShadowColor: gameInfo.color[0],
+    textShadowRadius: 20 * glowAnimation.value,
+    textShadowOffset: { width: 0, height: 0 },
+  }));
+
   if (!fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
@@ -141,7 +184,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ navigation, rout
             style={styles.scoreContainer}
           >
             <Text style={styles.scoreLabel}>Final Score</Text>
-            <Text style={styles.scoreValue}>{score}</Text>
+            <Animated.Text style={[styles.scoreValue, glowStyle]}>{score}</Animated.Text>
             <Text style={styles.scoreMessage}>{getScoreMessage()}</Text>
             
             {isNewBest && (
@@ -190,7 +233,19 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ navigation, rout
         <Animated.View style={[styles.buttonsContainer, slideStyle]}>
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              // Navigate back to the specific game with the same level
+              navigation.reset({
+                index: 1,
+                routes: [
+                  { name: 'MainTabs' },
+                  { 
+                    name: gameType === 'colorMatch' ? 'ColorMatchGame' : 'ReactionGame', 
+                    params: { level: level || 'easy' } 
+                  },
+                ],
+              });
+            }}
             activeOpacity={0.8}
           >
             <LinearGradient
@@ -203,7 +258,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ navigation, rout
 
           <TouchableOpacity
             style={styles.secondaryButton}
-            onPress={() => navigation.navigate('LeaderboardScreen')}
+            onPress={() => navigation.navigate('LeaderboardScreen', { gameType, level })}
             activeOpacity={0.8}
           >
             <Text style={styles.secondaryButtonText}>View Leaderboard</Text>

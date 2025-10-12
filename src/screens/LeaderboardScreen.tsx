@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   StatusBar,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +18,7 @@ import {
   Orbitron_700Bold,
 } from '@expo-google-fonts/orbitron';
 import { useGame } from '../store/useGameStore';
+import { leaderboardService, LeaderboardEntry } from '../firebase/leaderboard';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 
@@ -27,36 +30,102 @@ interface ScoreEntry {
   score: number;
   date: string;
   emoji: string;
+  level: string;
+  userId: string;
 }
 
-export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation }) => {
+export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation, route }) => {
+  const { gameType, level } = route.params || {};
   const { colorMatchStats, reactionTapStats, totalXP, totalGames, bestScore } = useGame();
+  const [firebaseScores, setFirebaseScores] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<'colorMatch' | 'reactionTap' | 'all'>(
+    (gameType === 'colorSnake') ? 'all' : (gameType || 'all')
+  );
+  const [selectedLevel, setSelectedLevel] = useState<'easy' | 'medium' | 'hard'>(level || 'easy');
   
-  // Combine and sort all game history
-  const allScores: ScoreEntry[] = [
-    ...colorMatchStats.gameHistory.map(game => ({
-      id: game.id,
-      game: 'Color Match',
-      score: game.score,
-      date: game.date.split('T')[0],
-      emoji: '🎨',
-    })),
-    ...reactionTapStats.gameHistory.map(game => ({
-      id: game.id,
-      game: 'Reaction Tap', 
-      score: game.score,
-      date: game.date.split('T')[0],
-      emoji: '⚡',
-    })),
-  ].sort((a, b) => b.score - a.score);
+  // Fetch scores from Firebase
+  const fetchScores = React.useCallback(async (showRefresh = false) => {
+    if (showRefresh) setRefreshing(true);
+    else setLoading(true);
+    
+    try {
+      let scores: LeaderboardEntry[] = [];
+      
+      if (selectedGame === 'all') {
+        // Get scores for both games
+        const [colorScores, reactionScores] = await Promise.all([
+          leaderboardService.getTopScores('colorMatch', selectedLevel, 50),
+          leaderboardService.getTopScores('reactionTap', selectedLevel, 50)
+        ]);
+        scores = [...colorScores, ...reactionScores].sort((a, b) => b.score - a.score).slice(0, 100);
+      } else {
+        scores = await leaderboardService.getTopScores(selectedGame, selectedLevel, 100);
+      }
+      
+      setFirebaseScores(scores);
+    } catch (error) {
+      console.error('Failed to fetch leaderboard:', error);
+      // Fall back to local scores if Firebase fails
+      setFirebaseScores([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [selectedGame, selectedLevel]);
 
-  // Add some mock data if no games played yet
-  const mockScores: ScoreEntry[] = allScores.length === 0 ? [
-    { id: '1', game: 'Color Match', score: 0, date: '2024-01-15', emoji: '🎨' },
-    { id: '2', game: 'Reaction Tap', score: 0, date: '2024-01-14', emoji: '⚡' },
-  ] : [];
+  useEffect(() => {
+    fetchScores();
+  }, [fetchScores]);
+
+  const onRefresh = () => {
+    fetchScores(true);
+  };
+
+  // Convert Firebase scores to display format
+  const getDisplayScores = (): ScoreEntry[] => {
+    if (firebaseScores.length > 0) {
+      return firebaseScores.map(score => ({
+        id: score.id || score.userId + score.timestamp.getTime(),
+        game: score.gameType === 'colorMatch' ? 'Color Match' : 'Reaction Tap',
+        score: score.score,
+        date: score.timestamp.toISOString().split('T')[0],
+        emoji: score.gameType === 'colorMatch' ? '🎨' : '⚡',
+        level: score.level,
+        userId: score.userId,
+      }));
+    }
+    
+    // Fall back to local scores
+    const allScores: ScoreEntry[] = [
+      ...colorMatchStats.gameHistory.map(game => ({
+        id: game.id,
+        game: 'Color Match',
+        score: game.score,
+        date: game.date.split('T')[0],
+        emoji: '🎨',
+        level: game.level,
+        userId: 'local',
+      })),
+      ...reactionTapStats.gameHistory.map(game => ({
+        id: game.id,
+        game: 'Reaction Tap', 
+        score: game.score,
+        date: game.date.split('T')[0],
+        emoji: '⚡',
+        level: game.level,
+        userId: 'local',
+      })),
+    ].sort((a, b) => b.score - a.score);
+
+    return allScores.length > 0 ? allScores : [
+      { id: '1', game: 'Color Match', score: 0, date: '2024-01-15', emoji: '🎨', level: 'easy', userId: 'demo' },
+      { id: '2', game: 'Reaction Tap', score: 0, date: '2024-01-14', emoji: '⚡', level: 'easy', userId: 'demo' },
+    ];
+  };
   
-  const displayScores = allScores.length > 0 ? allScores : mockScores;
+  const displayScores = getDisplayScores();
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
     Orbitron_700Bold,
@@ -120,8 +189,59 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
         </View>
       </LinearGradient>
 
+      {/* Filter Tabs */}
+      <View style={styles.filterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabs}>
+          {[
+            { key: 'all', label: 'All Games', emoji: '🏆' },
+            { key: 'colorMatch', label: 'Color Match', emoji: '🎨' },
+            { key: 'reactionTap', label: 'Reaction Tap', emoji: '⚡' },
+          ].map((game) => (
+            <TouchableOpacity
+              key={game.key}
+              style={[
+                styles.filterTab,
+                selectedGame === game.key && styles.filterTabActive
+              ]}
+              onPress={() => setSelectedGame(game.key as any)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.filterTabEmoji}>{game.emoji}</Text>
+              <Text style={[
+                styles.filterTabText,
+                selectedGame === game.key && styles.filterTabTextActive
+              ]}>
+                {game.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Level Selector */}
+      <View style={styles.levelContainer}>
+        {['easy', 'medium', 'hard'].map((levelOption) => (
+          <TouchableOpacity
+            key={levelOption}
+            style={[
+              styles.levelButton,
+              selectedLevel === levelOption && styles.levelButtonActive
+            ]}
+            onPress={() => setSelectedLevel(levelOption as any)}
+            activeOpacity={0.8}
+          >
+            <Text style={[
+              styles.levelButtonText,
+              selectedLevel === levelOption && styles.levelButtonTextActive
+            ]}>
+              {levelOption.toUpperCase()}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       {/* Stats Cards */}
-        <View style={styles.statsContainer}>
+      <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <LinearGradient
             colors={['rgba(0, 255, 198, 0.2)', 'rgba(0, 212, 170, 0.1)']}
@@ -159,8 +279,17 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
-          {displayScores.map((score, index) => (
+          {loading && !refreshing && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#8E2DE2" />
+              <Text style={styles.loadingText}>Loading leaderboard...</Text>
+            </View>
+          )}
+          {!loading && displayScores.map((score, index) => (
             <View key={score.id} style={styles.scoreItem}>
               <LinearGradient
                 colors={[
@@ -415,5 +544,71 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Orbitron_400Regular',
     color: '#FF3B30',
+  },
+  filterContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  filterTabs: {
+    paddingHorizontal: 5,
+  },
+  filterTab: {
+    backgroundColor: 'rgba(26, 26, 46, 0.6)',
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    marginHorizontal: 5,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(142, 45, 226, 0.3)',
+    minWidth: 80,
+  },
+  filterTabActive: {
+    backgroundColor: 'rgba(142, 45, 226, 0.3)',
+    borderColor: '#8E2DE2',
+  },
+  filterTabEmoji: {
+    fontSize: 16,
+    marginBottom: 3,
+  },
+  filterTabText: {
+    fontSize: 12,
+    fontFamily: 'Orbitron_400Regular',
+    color: '#B8B8D1',
+    textAlign: 'center',
+  },
+  filterTabTextActive: {
+    color: '#FFFFFF',
+    fontFamily: 'Orbitron_700Bold',
+  },
+  levelContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+    gap: 10,
+  },
+  levelButton: {
+    flex: 1,
+    backgroundColor: 'rgba(26, 26, 46, 0.6)',
+    borderRadius: 15,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(142, 45, 226, 0.3)',
+  },
+  levelButtonActive: {
+    backgroundColor: 'rgba(0, 255, 198, 0.2)',
+    borderColor: '#00FFC6',
+  },
+  levelButtonText: {
+    fontSize: 14,
+    fontFamily: 'Orbitron_400Regular',
+    color: '#B8B8D1',
+  },
+  levelButtonTextActive: {
+    color: '#00FFC6',
+    fontFamily: 'Orbitron_700Bold',
+    textShadowColor: '#00FFC6',
+    textShadowRadius: 5,
   },
 });

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +15,7 @@ import {
   Orbitron_400Regular,
   Orbitron_700Bold,
 } from '@expo-google-fonts/orbitron';
+import { useGame } from '../store/useGameStore';
 
 interface GameScreenProps {
   navigation: any;
@@ -26,6 +28,7 @@ interface GameScreenProps {
 
 export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => {
   const gameType = route.params?.gameType || 'unknown';
+  const { isLevelUnlocked, colorMatchStats, reactionTapStats } = useGame();
 
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
@@ -93,7 +96,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
         </LinearGradient>
       </TouchableOpacity>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content}>
         {/* Game Header */}
         <View style={styles.header}>
           <Text style={styles.gameEmoji}>{gameInfo.emoji}</Text>
@@ -117,38 +120,142 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
           </Text>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.buttonsContainer}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            activeOpacity={0.8}
-            disabled={gameType === 'colorSnake'}
-            onPress={() => {
-              if (gameType === 'colorMatch') {
-                navigation.navigate('ColorMatchGame');
-              } else if (gameType === 'reactionTap') {
-                navigation.navigate('ReactionGame');
-              }
-            }}
-          >
-            <LinearGradient
-              colors={gameType === 'colorSnake' ? ['#6B7280', '#4B5563'] : ['#00FFC6', '#00D4AA']}
-              style={styles.actionButtonGradient}
+        {/* Level Selection */}
+        {(gameType === 'colorMatch' || gameType === 'reactionTap') && (
+          <View style={styles.levelSelectionContainer}>
+            <Text style={styles.levelSelectionTitle}>Choose Difficulty:</Text>
+            
+            {/* Easy Level */}
+            <TouchableOpacity
+              style={styles.levelButton}
+              activeOpacity={0.8}
+              onPress={() => {
+                if (gameType === 'colorMatch') {
+                  navigation.navigate('ColorMatchGame', { level: 'easy' });
+                } else if (gameType === 'reactionTap') {
+                  navigation.navigate('ReactionGame', { level: 'easy' });
+                }
+              }}
             >
-              <Text style={styles.actionButtonText}>
-                {gameType === 'colorSnake' ? 'Coming Soon' : 'Start Game'}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={['#00FFC6', '#00D4AA']}
+                style={styles.levelButtonGradient}
+              >
+                <View style={styles.levelButtonContent}>
+                  <Text style={styles.levelButtonTitle}>🟢 EASY</Text>
+                  <Text style={styles.levelButtonSubtitle}>
+                    {gameType === 'colorMatch' ? '4 Colors' : 'Standard Speed'}
+                  </Text>
+                  <Text style={styles.levelButtonStatus}>✓ Unlocked</Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.secondaryButtonText}>High Scores</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            {/* Medium Level */}
+            <TouchableOpacity
+              style={[
+                styles.levelButton,
+                !isLevelUnlocked(gameType as any, 'medium') && styles.levelButtonLocked
+              ]}
+              activeOpacity={0.8}
+              disabled={!isLevelUnlocked(gameType as any, 'medium')}
+              onPress={() => {
+                if (gameType === 'colorMatch') {
+                  navigation.navigate('ColorMatchGame', { level: 'medium' });
+                } else if (gameType === 'reactionTap') {
+                  navigation.navigate('ReactionGame', { level: 'medium' });
+                }
+              }}
+            >
+              <LinearGradient
+                colors={isLevelUnlocked(gameType as any, 'medium') 
+                  ? ['#FFD60A', '#FFB800'] 
+                  : ['#6B7280', '#4B5563']
+                }
+                style={styles.levelButtonGradient}
+              >
+                <View style={styles.levelButtonContent}>
+                  <Text style={styles.levelButtonTitle}>🟡 MEDIUM</Text>
+                  <Text style={styles.levelButtonSubtitle}>
+                    {gameType === 'colorMatch' ? '6 Colors' : 'Faster Speed'}
+                  </Text>
+                  <Text style={styles.levelButtonStatus}>
+                    {isLevelUnlocked(gameType as any, 'medium') 
+                      ? '✓ Unlocked' 
+                      : '🔒 Need 500 XP'
+                    }
+                  </Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Hard Level */}
+            <TouchableOpacity
+              style={[
+                styles.levelButton,
+                !isLevelUnlocked(gameType as any, 'hard') && styles.levelButtonLocked
+              ]}
+              activeOpacity={0.8}
+              disabled={!isLevelUnlocked(gameType as any, 'hard')}
+              onPress={() => {
+                if (gameType === 'colorMatch') {
+                  navigation.navigate('ColorMatchGame', { level: 'hard' });
+                } else if (gameType === 'reactionTap') {
+                  navigation.navigate('ReactionGame', { level: 'hard' });
+                }
+              }}
+            >
+              <LinearGradient
+                colors={isLevelUnlocked(gameType as any, 'hard') 
+                  ? ['#FF3B30', '#FF2D55'] 
+                  : ['#6B7280', '#4B5563']
+                }
+                style={styles.levelButtonGradient}
+              >
+                <View style={styles.levelButtonContent}>
+                  <Text style={styles.levelButtonTitle}>🔴 HARD</Text>
+                  <Text style={styles.levelButtonSubtitle}>
+                    {gameType === 'colorMatch' ? '8 Colors' : 'Lightning Speed'}
+                  </Text>
+                  <Text style={styles.levelButtonStatus}>
+                    {isLevelUnlocked(gameType as any, 'hard') 
+                      ? '✓ Unlocked' 
+                      : '🔒 Need 1500 XP'
+                    }
+                  </Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Coming Soon for Color Snake */}
+        {gameType === 'colorSnake' && (
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              activeOpacity={0.8}
+              disabled={true}
+            >
+              <LinearGradient
+                colors={['#6B7280', '#4B5563']}
+                style={styles.actionButtonGradient}
+              >
+                <Text style={styles.actionButtonText}>Coming Soon</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Leaderboard Button */}
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('LeaderboardScreen', { gameType: gameType as any })}
+        >
+          <Text style={styles.secondaryButtonText}>High Scores</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -306,5 +413,59 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Orbitron_400Regular',
     color: '#8E2DE2',
+  },
+  levelSelectionContainer: {
+    marginBottom: 20,
+  },
+  levelSelectionTitle: {
+    fontSize: 18,
+    fontFamily: 'Orbitron_700Bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 20,
+    textShadowColor: '#8E2DE2',
+    textShadowRadius: 10,
+  },
+  levelButton: {
+    borderRadius: 15,
+    marginBottom: 15,
+    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+  },
+  levelButtonLocked: {
+    opacity: 0.6,
+  },
+  levelButtonGradient: {
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 15,
+    alignItems: 'center',
+  },
+  levelButtonContent: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  levelButtonTitle: {
+    fontSize: 18,
+    fontFamily: 'Orbitron_700Bold',
+    color: '#FFFFFF',
+    marginBottom: 5,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowRadius: 4,
+  },
+  levelButtonSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Orbitron_400Regular',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    opacity: 0.9,
+  },
+  levelButtonStatus: {
+    fontSize: 12,
+    fontFamily: 'Orbitron_400Regular',
+    color: '#FFFFFF',
+    opacity: 0.8,
   },
 });
