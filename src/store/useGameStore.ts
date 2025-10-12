@@ -72,8 +72,8 @@ const initialStats: GameStats = {
 
 // XP requirements for level unlocks
 const LEVEL_UNLOCK_REQUIREMENTS = {
-  medium: 500, // 500 XP to unlock medium
-  hard: 1500,  // 1500 XP to unlock hard
+  medium: 10000, // 10,000 XP to unlock medium
+  hard: 40000,   // 40,000 XP to unlock hard
 };
 
 export const useGameStore = create<GameStore>()(

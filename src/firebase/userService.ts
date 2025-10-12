@@ -1,5 +1,5 @@
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { getAuth, signInAnonymously, onAuthStateChanged, deleteUser } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { firestore } from './config';
 
@@ -372,6 +372,37 @@ class UserService {
     } catch (error) {
       console.error('❌ Failed to check user existence:', error);
       return false;
+    }
+  }
+
+  // Delete user account completely
+  async deleteUserAccount(uid: string): Promise<void> {
+    try {
+      console.log('🗑️ Starting account deletion for UID:', uid);
+      
+      // Delete user document from Firestore
+      console.log('🔥 Deleting Firebase document...');
+      await deleteDoc(doc(firestore, this.USERS_COLLECTION, uid));
+      console.log('✅ Firebase document deleted');
+      
+      // Clear AsyncStorage
+      console.log('💾 Clearing AsyncStorage...');
+      await this.clearUserData();
+      console.log('✅ AsyncStorage cleared');
+      
+      // Delete Firebase Auth user (anonymous user)
+      console.log('🔐 Deleting Firebase Auth user...');
+      if (this.auth.currentUser) {
+        await deleteUser(this.auth.currentUser);
+        console.log('✅ Firebase Auth user deleted');
+      } else {
+        console.log('⚠️ No current Firebase Auth user found');
+      }
+      
+      console.log('✅ User account deleted successfully');
+    } catch (error) {
+      console.error('❌ Failed to delete user account:', error);
+      throw error;
     }
   }
 }

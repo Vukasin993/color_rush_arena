@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,12 +29,34 @@ interface GameScreenProps {
 
 export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => {
   const gameType = route.params?.gameType || 'unknown';
-  const { isLevelUnlocked, colorMatchStats, reactionTapStats } = useGame();
+  const { isLevelUnlocked } = useGame();
 
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
     Orbitron_700Bold,
   });
+
+  const handleAdReward = (level: 'easy' | 'medium' | 'hard') => {
+    Alert.alert(
+      '🎥 Watch Ad for +5 Seconds',
+      'Watch a short ad to get 5 extra seconds of game time!\n\nThis will give you more time to achieve a higher score.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Watch Ad',
+          style: 'default',
+          onPress: () => {
+            // Simulate ad completion and navigate with bonus time
+            if (gameType === 'colorMatch') {
+              navigation.navigate('ColorMatchGame', { level, bonusTime: 5 });
+            } else if (gameType === 'reactionTap') {
+              navigation.navigate('ReactionGame', { level, bonusTime: 5 });
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const getGameInfo = () => {
     switch (gameType) {
@@ -116,106 +139,158 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
             <Text style={styles.levelSelectionTitle}>Choose Difficulty:</Text>
             
             {/* Easy Level */}
-            <TouchableOpacity
-              style={styles.levelButton}
-              activeOpacity={0.8}
-              onPress={() => {
-                if (gameType === 'colorMatch') {
-                  navigation.navigate('ColorMatchGame', { level: 'easy' });
-                } else if (gameType === 'reactionTap') {
-                  navigation.navigate('ReactionGame', { level: 'easy' });
-                }
-              }}
-            >
-              <LinearGradient
-                colors={['#00FFC6', '#00D4AA']}
-                style={styles.levelButtonGradient}
+            <View style={styles.levelContainer}>
+              <TouchableOpacity
+                style={styles.levelButton}
+                activeOpacity={0.8}
+                onPress={() => {
+                  if (gameType === 'colorMatch') {
+                    navigation.navigate('ColorMatchGame', { level: 'easy' });
+                  } else if (gameType === 'reactionTap') {
+                    navigation.navigate('ReactionGame', { level: 'easy' });
+                  }
+                }}
               >
-                <View style={styles.levelButtonContent}>
-                  <Text style={styles.levelButtonTitle}>🟢 EASY</Text>
-                  <Text style={styles.levelButtonSubtitle}>
-                    {gameType === 'colorMatch' ? '4 Colors' : 'Standard Speed'}
-                  </Text>
-                  <Text style={styles.levelButtonStatus}>✓ Unlocked</Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={['#00FFC6', '#00D4AA']}
+                  style={styles.levelButtonGradient}
+                >
+                  <View style={styles.levelButtonContent}>
+                    <Text style={styles.levelButtonTitle}>🟢 EASY</Text>
+                    <Text style={styles.levelButtonSubtitle}>
+                      {gameType === 'colorMatch' ? '4 Colors • 30s' : 'Standard Speed • 5 Rounds'}
+                    </Text>
+                    <Text style={styles.levelButtonStatus}>✓ Unlocked</Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.adRewardButton}
+                activeOpacity={0.8}
+                onPress={() => handleAdReward('easy')}
+              >
+                <LinearGradient
+                  colors={['#FFD60A', '#FF9500']}
+                  style={styles.adRewardButtonGradient}
+                >
+                  <Ionicons name="play" size={16} color="#FFFFFF" />
+                  <Text style={styles.adRewardButtonText}>+5s</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
 
             {/* Medium Level */}
-            <TouchableOpacity
-              style={[
-                styles.levelButton,
-                !isLevelUnlocked(gameType as any, 'medium') && styles.levelButtonLocked
-              ]}
-              activeOpacity={0.8}
-              // disabled={!isLevelUnlocked(gameType as any, 'medium')}
-              onPress={() => {
-                if (gameType === 'colorMatch') {
-                  navigation.navigate('ColorMatchGame', { level: 'medium' });
-                } else if (gameType === 'reactionTap') {
-                  navigation.navigate('ReactionGame', { level: 'medium' });
-                }
-              }}
-            >
-              <LinearGradient
-                colors={isLevelUnlocked(gameType as any, 'medium') 
-                  ? ['#FFD60A', '#FFB800'] 
-                  : ['#6B7280', '#4B5563']
-                }
-                style={styles.levelButtonGradient}
+            <View style={styles.levelContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.levelButton,
+                  !isLevelUnlocked(gameType as any, 'medium') && styles.levelButtonLocked
+                ]}
+                activeOpacity={0.8}
+                // disabled={!isLevelUnlocked(gameType as any, 'medium')}
+                onPress={() => {
+                  if (gameType === 'colorMatch') {
+                    navigation.navigate('ColorMatchGame', { level: 'medium' });
+                  } else if (gameType === 'reactionTap') {
+                    navigation.navigate('ReactionGame', { level: 'medium' });
+                  }
+                }}
               >
-                <View style={styles.levelButtonContent}>
-                  <Text style={styles.levelButtonTitle}>🟡 MEDIUM</Text>
-                  <Text style={styles.levelButtonSubtitle}>
-                    {gameType === 'colorMatch' ? '6 Colors' : 'Faster Speed'}
-                  </Text>
-                  <Text style={styles.levelButtonStatus}>
-                    {isLevelUnlocked(gameType as any, 'medium') 
-                      ? '✓ Unlocked' 
-                      : '🔒 Need 500 XP'
-                    }
-                  </Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={isLevelUnlocked(gameType as any, 'medium') 
+                    ? ['#FFD60A', '#FFB800'] 
+                    : ['#6B7280', '#4B5563']
+                  }
+                  style={styles.levelButtonGradient}
+                >
+                  <View style={styles.levelButtonContent}>
+                    <Text style={styles.levelButtonTitle}>🟡 MEDIUM</Text>
+                    <Text style={styles.levelButtonSubtitle}>
+                      {gameType === 'colorMatch' ? '6 Colors • 45s' : 'Faster Speed • 5 Rounds'}
+                    </Text>
+                    <Text style={styles.levelButtonStatus}>
+                      {isLevelUnlocked(gameType as any, 'medium') 
+                        ? '✓ Unlocked' 
+                        : '🔒 Need 10,000 XP'
+                      }
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              {isLevelUnlocked(gameType as any, 'medium') && (
+                <TouchableOpacity
+                  style={styles.adRewardButton}
+                  activeOpacity={0.8}
+                  onPress={() => handleAdReward('medium')}
+                >
+                  <LinearGradient
+                    colors={['#FFD60A', '#FF9500']}
+                    style={styles.adRewardButtonGradient}
+                  >
+                    <Ionicons name="play" size={16} color="#FFFFFF" />
+                    <Text style={styles.adRewardButtonText}>+5s</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
 
             {/* Hard Level */}
-            <TouchableOpacity
-              style={[
-                styles.levelButton,
-                !isLevelUnlocked(gameType as any, 'hard') && styles.levelButtonLocked
-              ]}
-              activeOpacity={0.8}
-              disabled={!isLevelUnlocked(gameType as any, 'hard')}
-              onPress={() => {
-                if (gameType === 'colorMatch') {
-                  navigation.navigate('ColorMatchGame', { level: 'hard' });
-                } else if (gameType === 'reactionTap') {
-                  navigation.navigate('ReactionGame', { level: 'hard' });
-                }
-              }}
-            >
-              <LinearGradient
-                colors={isLevelUnlocked(gameType as any, 'hard') 
-                  ? ['#FF3B30', '#FF2D55'] 
-                  : ['#6B7280', '#4B5563']
-                }
-                style={styles.levelButtonGradient}
+            <View style={styles.levelContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.levelButton,
+                  !isLevelUnlocked(gameType as any, 'hard') && styles.levelButtonLocked
+                ]}
+                activeOpacity={0.8}
+                disabled={!isLevelUnlocked(gameType as any, 'hard')}
+                onPress={() => {
+                  if (gameType === 'colorMatch') {
+                    navigation.navigate('ColorMatchGame', { level: 'hard' });
+                  } else if (gameType === 'reactionTap') {
+                    navigation.navigate('ReactionGame', { level: 'hard' });
+                  }
+                }}
               >
-                <View style={styles.levelButtonContent}>
-                  <Text style={styles.levelButtonTitle}>🔴 HARD</Text>
-                  <Text style={styles.levelButtonSubtitle}>
-                    {gameType === 'colorMatch' ? '8 Colors' : 'Lightning Speed'}
-                  </Text>
-                  <Text style={styles.levelButtonStatus}>
-                    {isLevelUnlocked(gameType as any, 'hard') 
-                      ? '✓ Unlocked' 
-                      : '🔒 Need 1500 XP'
-                    }
-                  </Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={isLevelUnlocked(gameType as any, 'hard') 
+                    ? ['#FF3B30', '#FF2D55'] 
+                    : ['#6B7280', '#4B5563']
+                  }
+                  style={styles.levelButtonGradient}
+                >
+                  <View style={styles.levelButtonContent}>
+                    <Text style={styles.levelButtonTitle}>🔴 HARD</Text>
+                    <Text style={styles.levelButtonSubtitle}>
+                      {gameType === 'colorMatch' ? '8 Colors • 60s' : 'Lightning Speed • 5 Rounds'}
+                    </Text>
+                    <Text style={styles.levelButtonStatus}>
+                      {isLevelUnlocked(gameType as any, 'hard') 
+                        ? '✓ Unlocked' 
+                        : '🔒 Need 40,000 XP'
+                      }
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              {isLevelUnlocked(gameType as any, 'hard') && (
+                <TouchableOpacity
+                  style={styles.adRewardButton}
+                  activeOpacity={0.8}
+                  onPress={() => handleAdReward('hard')}
+                >
+                  <LinearGradient
+                    colors={['#FFD60A', '#FF9500']}
+                    style={styles.adRewardButtonGradient}
+                  >
+                    <Ionicons name="play" size={16} color="#FFFFFF" />
+                    <Text style={styles.adRewardButtonText}>+5s</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         )}
 
@@ -401,8 +476,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 10,
   },
   levelButton: {
+    flex: 1,
     borderRadius: 15,
-    marginBottom: 15,
     elevation: 8,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
@@ -441,5 +516,36 @@ const styles = StyleSheet.create({
     fontFamily: 'Orbitron_400Regular',
     color: '#FFFFFF',
     opacity: 0.8,
+  },
+  levelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    gap: 10,
+  },
+  adRewardButton: {
+    borderRadius: 25,
+    elevation: 6,
+    shadowColor: '#FFD60A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+  },
+  adRewardButtonGradient: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    minWidth: 80,
+  },
+  adRewardButtonText: {
+    fontSize: 14,
+    fontFamily: 'Orbitron_700Bold',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowRadius: 2,
   },
 });

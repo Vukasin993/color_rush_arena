@@ -58,25 +58,31 @@ const getColorsForLevel = (level: "easy" | "medium" | "hard"): ColorData[] => {
   }
 };
 
-const getGameDuration = (level: string) => {
+const getGameDuration = (level: string, bonusTime: number = 0) => {
+  let baseDuration: number;
   switch (level) {
     case 'easy':
-      return 30;
+      baseDuration = 30;
+      break;
     case 'medium':
-      return 45;
+      baseDuration = 45;
+      break;
     case 'hard':
-      return 30;
+      baseDuration = 60;
+      break;
     default:
-      return 30;
+      baseDuration = 30;
+      break;
   }
+  return baseDuration + bonusTime;
 };
 
 export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
   navigation,
   route,
 }) => {
-  const { level = "easy", autoStart = false } = route.params || {};
-  const GAME_DURATION = getGameDuration(level);
+  const { level = "easy", autoStart = false, bonusTime = 0 } = route.params || {};
+  const GAME_DURATION = getGameDuration(level, bonusTime);
   const { currentGame, startGame, endGame, updateScore } = useGame();
 
   const COLORS = getColorsForLevel(level);

@@ -52,7 +52,8 @@ const GAME_COLORS: GameColors[] = [
   { name: 'PURPLE', value: '#8E2DE2', textColor: '#B865F0' },
 ];
 
-const TOTAL_ROUNDS = 5;
+const BASE_ROUNDS = 5;
+const getBonusRounds = (bonusTime: number) => Math.floor(bonusTime / 5); // 1 bonus round per 5 seconds
 
 const getLevelConfig = (level: 'easy' | 'medium' | 'hard') => {
   switch (level) {
@@ -90,9 +91,10 @@ const getLevelConfig = (level: 'easy' | 'medium' | 'hard') => {
 const PENALTY_MS = 100;
 
 export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation, route }) => {
-  const { level = 'easy', autoStart = false } = route.params || {};
+  const { level = 'easy', autoStart = false, bonusTime = 0 } = route.params || {};
   const { startGame, endGame, updateScore } = useGame();
   const levelConfig = getLevelConfig(level);
+  const TOTAL_ROUNDS = BASE_ROUNDS + getBonusRounds(bonusTime);
   
   const [gameStarted, setGameStarted] = useState(false);
   const [gamePhase, setGamePhase] = useState<'waiting' | 'target' | 'results'>('waiting');
@@ -204,7 +206,7 @@ export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation, route })
         }, 500);
       }, levelConfig.targetShowTime);
     }, waitTime);
-  }, [currentRound, results, targetColor, endGame, backgroundAnimation, textGlowAnimation, resultAnimation, clearTimeouts, levelConfig]);
+  }, [currentRound, results, targetColor, endGame, backgroundAnimation, textGlowAnimation, resultAnimation, clearTimeouts, levelConfig, TOTAL_ROUNDS]);
 
   // Handle correct tap
   const handleTap = useCallback(() => {
@@ -301,7 +303,7 @@ export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation, route })
       score,
       xpEarned,
     });
-  }, [results, navigation, level]);
+  }, [results, level]);
 
   // Cleanup on unmount
   useEffect(() => {

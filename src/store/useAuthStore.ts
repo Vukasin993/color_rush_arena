@@ -12,6 +12,7 @@ interface AuthState {
   // Actions
   login: (customUsername?: string) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   updateUsername: (newUsername: string) => Promise<void>;
   updateGameStats: (
     gameType: 'colorMatch' | 'reactionTap',
@@ -82,6 +83,31 @@ export const useAuthStore = create<AuthState>()(
           const errorMessage = error.message || 'Logout failed';
           set({ error: errorMessage, isLoading: false });
           console.error('❌ Logout failed:', errorMessage);
+          throw error;
+        }
+      },
+
+      deleteAccount: async () => {
+        try {
+          const { user } = get();
+          if (!user) throw new Error('No user found');
+          
+          set({ isLoading: true, error: null });
+          
+          await userService.deleteUserAccount(user.uid);
+          
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+          });
+          
+          console.log('✅ User account deleted successfully');
+        } catch (error: any) {
+          const errorMessage = error.message || 'Account deletion failed';
+          set({ error: errorMessage, isLoading: false });
+          console.error('❌ Account deletion failed:', errorMessage);
           throw error;
         }
       },
@@ -246,6 +272,7 @@ export const useAuth = () => {
     error: store.error,
     login: store.login,
     logout: store.logout,
+    deleteAccount: store.deleteAccount,
     updateUsername: store.updateUsername,
     updateGameStats: store.updateGameStats,
     syncUserData: store.syncUserData,

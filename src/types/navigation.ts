@@ -3,8 +3,8 @@ export type RootStackParamList = {
   MainTabs: undefined;
   GameScreen: { gameType: string; level?: 'easy' | 'medium' | 'hard' };
   LeaderboardScreen: { gameType?: 'colorMatch' | 'reactionTap' | 'colorSnake'; level?: 'easy' | 'medium' | 'hard' };
-  ColorMatchGame: { level?: 'easy' | 'medium' | 'hard'; autoStart?: boolean };
-  ReactionGame: { level?: 'easy' | 'medium' | 'hard'; autoStart?: boolean };
+  ColorMatchGame: { level?: 'easy' | 'medium' | 'hard'; autoStart?: boolean; bonusTime?: number };
+  ReactionGame: { level?: 'easy' | 'medium' | 'hard'; autoStart?: boolean; bonusTime?: number };
   GameOverScreen: {
     gameType: 'colorMatch' | 'reactionTap' | 'colorSnake';
     level: 'easy' | 'medium' | 'hard';

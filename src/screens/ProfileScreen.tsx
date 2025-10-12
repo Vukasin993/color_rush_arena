@@ -20,7 +20,7 @@ import {
 import { useAuth } from '../store/useAuthStore';
 
 export const ProfileScreen: React.FC = () => {
-  const { user, updateUsername, logout } = useAuth();
+  const { user, updateUsername, deleteAccount } = useAuth();
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState(user?.username || '');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -60,21 +60,57 @@ export const ProfileScreen: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
+
+
+  const handleDeleteAccount = () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out? Your progress will be saved.',
+      '🗑️ Delete Account',
+      `⚠️ PERMANENT ACTION WARNING ⚠️
+
+This will PERMANENTLY delete:
+• All your game progress and scores
+• ${user?.totalXP || 0} XP and Level ${Math.floor((user?.totalXP || 0) / 1000) + 1} status
+• ${user?.totalGames || 0} game records and statistics
+• Your account and username "${user?.username}"
+
+This action cannot be undone and you will be signed out immediately.
+
+Are you absolutely certain you want to proceed?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Cancel', 
+          style: 'cancel' 
+        },
         {
-          text: 'Sign Out',
+          text: 'DELETE FOREVER',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout();
-            } catch {
-              Alert.alert('Error', 'Could not sign out. Please try again.');
-            }
+          onPress: () => {
+            // Second confirmation
+            Alert.alert(
+              '🚨 Final Confirmation',
+              `Type your username "${user?.username}" to confirm deletion:
+
+This is your LAST CHANCE to cancel!`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Yes, Delete My Account',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await deleteAccount();
+                      // Navigate to login screen after successful deletion
+                      // The auth state change should automatically redirect
+                    } catch (error: any) {
+                      Alert.alert(
+                        'Deletion Failed', 
+                        error.message || 'Could not delete account. Please try again.'
+                      );
+                    }
+                  },
+                },
+              ]
+            );
           },
         },
       ]
@@ -159,13 +195,13 @@ export const ProfileScreen: React.FC = () => {
           ) : (
             <View style={styles.usernameContainer}>
               <Text style={styles.username}>{user.username}</Text>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.editButton}
                 onPress={() => setIsEditingUsername(true)}
               >
                 <Ionicons name="pencil" size={16} color="#8E2DE2" />
                 <Text style={styles.editButtonText}>Edit</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           )}
         </View>
@@ -253,13 +289,23 @@ export const ProfileScreen: React.FC = () => {
 
         {/* Actions */}
         <View style={styles.section}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          {/* <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <LinearGradient
               colors={['#FF3B30', '#FF2D55']}
               style={styles.logoutButtonGradient}
             >
               <Ionicons name="log-out" size={20} color="#FFFFFF" />
               <Text style={styles.logoutButtonText}>Sign Out</Text>
+            </LinearGradient>
+          </TouchableOpacity> */}
+          
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
+            <LinearGradient
+              colors={['#8B0000', '#DC143C']}
+              style={styles.deleteButtonGradient}
+            >
+              <Ionicons name="trash" size={20} color="#FFFFFF" />
+              <Text style={styles.deleteButtonText}>Delete Account</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -465,15 +511,17 @@ const styles = StyleSheet.create({
     color: '#B8B8D1',
     marginBottom: 5,
   },
-  logoutButton: {
+
+  deleteButton: {
     borderRadius: 12,
     elevation: 8,
-    shadowColor: '#FF3B30',
+    shadowColor: '#8B0000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
+    marginTop: 15,
   },
-  logoutButtonGradient: {
+  deleteButtonGradient: {
     paddingVertical: 15,
     paddingHorizontal: 25,
     borderRadius: 12,
@@ -482,7 +530,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  logoutButtonText: {
+  deleteButtonText: {
     fontSize: 16,
     fontFamily: 'Orbitron_700Bold',
     color: '#FFFFFF',
