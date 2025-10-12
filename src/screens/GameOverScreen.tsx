@@ -134,55 +134,47 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     }
   }, [scoreSubmitted, score, gameType, level, xpEarned, user, updateGameStats]);
 
-  useEffect(() => {
-    if (!initializedRef.current) {
-      console.log('🎮 GameOverScreen initializing...');
-      
-      // Reset game first
-      resetCurrentGame();
-      
-      // Always start animations immediately - don't wait for Firebase
-      fadeAnimation.value = withTiming(1, { duration: 500 });
-      slideAnimation.value = withTiming(0, { duration: 600 });
-      scaleAnimation.value = withDelay(
-        300,
-        withSequence(
-          withTiming(1.2, { duration: 300 }),
-          withTiming(1, { duration: 200 })
-        )
-      );
-      xpAnimation.value = withDelay(800, withTiming(1, { duration: 1000 }));
-      glowAnimation.value = withTiming(1, { duration: 1500 });
-      
-      // Submit score in background (with error handling) - don't block UI
-      setTimeout(() => {
-        submitScoreToFirebase().catch(error => {
-          console.error('❌ Score submission failed, but UI continues:', error);
-        });
-      }, 100); // Small delay to let UI render first
+useEffect(() => {
+  console.log('🎮 GameOverScreen initializing (always)');
+  resetCurrentGame();
 
-      initializedRef.current = true;
-      console.log('✅ GameOverScreen initialized');
-    }
+  // Animacije neka se uvek pokrenu kad se ekran otvori
+  fadeAnimation.value = withTiming(1, { duration: 800 });
+  slideAnimation.value = withTiming(0, { duration: 800 });
+  scaleAnimation.value = withDelay(
+    300,
+    withSequence(
+      withTiming(1.2, { duration: 300 }),
+      withTiming(1, { duration: 200 })
+    )
+  );
+  xpAnimation.value = withDelay(800, withTiming(1, { duration: 1000 }));
+  glowAnimation.value = withTiming(1, { duration: 1500 });
 
-    // Cleanup on unmount
-    return () => {
-      console.log('🧹 GameOverScreen cleanup');
-      fadeAnimation.value = 0;
-      slideAnimation.value = 0;
-      scaleAnimation.value = 0;
-      xpAnimation.value = 0;
-      glowAnimation.value = 0;
-    };
-  }, [
-    fadeAnimation,
-    slideAnimation,
-    scaleAnimation,
-    xpAnimation,
-    glowAnimation,
-    resetCurrentGame,
-    submitScoreToFirebase,
-  ]);
+  setTimeout(() => {
+    submitScoreToFirebase().catch((error) =>
+      console.error('❌ Score submission failed, but UI continues:', error)
+    );
+  }, 100);
+
+  return () => {
+    console.log('🧹 GameOverScreen cleanup');
+    fadeAnimation.value = 0;
+    slideAnimation.value = 0;
+    scaleAnimation.value = 0;
+    xpAnimation.value = 0;
+    glowAnimation.value = 0;
+  };
+}, [
+  fadeAnimation,
+  slideAnimation,
+  scaleAnimation,
+  xpAnimation,
+  glowAnimation,
+  resetCurrentGame,
+  submitScoreToFirebase,
+]);
+
 
   console.log('✅ GameOverScreen main render');
   const getGameInfo = () => {
@@ -250,6 +242,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     textShadowOffset: { width: 0, height: 0 },
   }));
 
+    console.log('✅ GameOverScreen main render 1');
+
   if (!fontsLoaded) {
     console.log('⏳ Fonts not loaded yet...');
     return (
@@ -258,6 +252,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
       </View>
     );
   }
+  console.log('✅ GameOverScreen main render 2');
 
   // Safety check for route params
   if (!route?.params) {
@@ -271,12 +266,15 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     );
   }
 
-  console.log('✅ GameOverScreen rendering main content');
+  console.log('🎨 fadeAnimation:', fadeAnimation.value);
+
+  console.log('✅ GameOverScreen rendering main content 3');
+console.log('🎨 Opacity:', fadeAnimation.value);
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1,  }}>
         <Animated.View style={[styles.content, fadeStyle]}>
           {/* HEADER */}
           <Animated.View style={[styles.header, slideStyle]}>
@@ -394,6 +392,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#0F0F1B",
+    
   },
   loadingContainer: {
     flex: 1,
