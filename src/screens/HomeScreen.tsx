@@ -136,10 +136,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           />
 
           <GameCard
-            title="Reaction Tap"
-            emoji="⚡"
-            description="Lightning-fast reaction testing"
-            onPress={() => handleGamePress('reactionTap')}
+            title="Memory Rush"
+            emoji="🧩"
+            description="Color sequence memory challenge"
+            onPress={() => handleGamePress('memoryRush')}
           />
 
           <GameCard

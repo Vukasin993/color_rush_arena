@@ -12,6 +12,7 @@ import { GameOverScreen } from '../screens/GameOverScreen';
 import { LeaderboardScreen } from '../screens/LeaderboardScreen';
 import { ColorMatchGame } from '../games/colorMatch/ColorMatchGame';
 import { ReactionGame } from '../games/reactionTap/ReactionGame';
+import { MemoryRushGame } from '../games/memoryRush/MemoryRushGame';
 import { useAuth } from '../store/useAuthStore';
 import { RootStackParamList } from '../types/navigation';
 
@@ -73,6 +74,7 @@ const AuthenticatedStack = () => (
     <Stack.Screen name="GameScreen" component={GameScreen} />
     <Stack.Screen name="ColorMatchGame" component={ColorMatchGame} />
     <Stack.Screen name="ReactionGame" component={ReactionGame} />
+    <Stack.Screen name="MemoryRushGame" component={MemoryRushGame} />
     <Stack.Screen name="GameOverScreen" component={GameOverScreen} />
     <Stack.Screen name="LeaderboardScreen" component={LeaderboardScreen} />
   </Stack.Navigator>

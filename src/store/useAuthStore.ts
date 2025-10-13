@@ -15,8 +15,8 @@ interface AuthState {
   deleteAccount: () => Promise<void>;
   updateUsername: (newUsername: string) => Promise<void>;
   updateGameStats: (
-    gameType: 'colorMatch' | 'reactionTap',
-    level: 'easy' | 'medium' | 'hard',
+    gameType: 'colorMatch' | 'reactionTap' | 'memoryRush',
+    level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard',
     score: number,
     xpEarned: number
   ) => Promise<void>;
@@ -132,8 +132,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       updateGameStats: async (
-        gameType: 'colorMatch' | 'reactionTap',
-        level: 'easy' | 'medium' | 'hard',
+        gameType: 'colorMatch' | 'reactionTap' | 'memoryRush',
+        level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard',
         score: number,
         xpEarned: number
       ) => {

@@ -38,6 +38,19 @@ export interface UserProfile {
     hardCompleted: number;
   };
   
+  // Memory Rush Stats
+  memoryRushStats: {
+    totalGames: number;
+    bestScore: number;
+    averageScore: number;
+    totalXP: number;
+    easyCompleted: number;
+    mediumCompleted: number;
+    hardCompleted: number;
+    extremeCompleted: number;
+    extraHardCompleted: number;
+  };
+  
   // Preferences
   preferences: {
     soundEnabled: boolean;
@@ -98,6 +111,17 @@ class UserService {
         easyCompleted: 0,
         mediumCompleted: 0,
         hardCompleted: 0,
+      },
+      memoryRushStats: {
+        totalGames: 0,
+        bestScore: 0,
+        averageScore: 0,
+        totalXP: 0,
+        easyCompleted: 0,
+        mediumCompleted: 0,
+        hardCompleted: 0,
+        extremeCompleted: 0,
+        extraHardCompleted: 0,
       },
       preferences: {
         soundEnabled: true,
@@ -265,8 +289,8 @@ class UserService {
   // Update game statistics
   async updateGameStats(
     uid: string, 
-    gameType: 'colorMatch' | 'reactionTap',
-    level: 'easy' | 'medium' | 'hard',
+    gameType: 'colorMatch' | 'reactionTap' | 'memoryRush',
+    level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard',
     score: number,
     xpEarned: number
   ): Promise<void> {
@@ -286,7 +310,9 @@ class UserService {
 
       const gameStats = gameType === 'colorMatch' 
         ? currentUser.colorMatchStats 
-        : currentUser.reactionTapStats;
+        : gameType === 'reactionTap' 
+        ? currentUser.reactionTapStats
+        : currentUser.memoryRushStats;
       
       console.log('🎮 Current game stats:', JSON.stringify(gameStats, null, 2));
       
@@ -304,7 +330,7 @@ class UserService {
           (gameStats.averageScore * gameStats.totalGames + score) / (gameStats.totalGames + 1)
         ),
         totalXP: gameStats.totalXP + xpEarned,
-        [`${level}Completed`]: gameStats[`${level}Completed` as keyof typeof gameStats] + 1,
+        [`${level === 'extra-hard' ? 'extraHard' : level}Completed`]: gameStats[`${level === 'extra-hard' ? 'extraHard' : level}Completed` as keyof typeof gameStats] + 1,
       };
 
       console.log('🔄 Updated game stats:', JSON.stringify(updatedGameStats, null, 2));

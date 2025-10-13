@@ -12,13 +12,15 @@ interface GameStats {
     easy: boolean;
     medium: boolean;
     hard: boolean;
+    extreme?: boolean;
+    'extra-hard'?: boolean;
   };
 }
 
 interface GameResult {
   id: string;
-  gameType: 'colorMatch' | 'reactionTap' | 'colorSnake';
-  level: 'easy' | 'medium' | 'hard';
+  gameType: 'colorMatch' | 'reactionTap' | 'colorSnake' | 'memoryRush';
+  level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard';
   score: number;
   xpEarned: number;
   date: string;
@@ -29,32 +31,33 @@ interface GameStore {
   // Game Stats
   colorMatchStats: GameStats;
   reactionTapStats: GameStats;
+  memoryRushStats: GameStats;
   totalXP: number;
   
   // Current Game State
   currentGame: {
-    type: 'colorMatch' | 'reactionTap' | 'colorSnake' | null;
-    level: 'easy' | 'medium' | 'hard';
+    type: 'colorMatch' | 'reactionTap' | 'colorSnake' | 'memoryRush' | null;
+    level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard';
     score: number;
     timeRemaining: number;
     isPlaying: boolean;
   };
   
   // Actions
-  startGame: (gameType: 'colorMatch' | 'reactionTap' | 'colorSnake', level?: 'easy' | 'medium' | 'hard') => void;
+  startGame: (gameType: 'colorMatch' | 'reactionTap' | 'colorSnake' | 'memoryRush', level?: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard') => void;
   endGame: (finalScore: number) => void;
   updateScore: (points: number) => void;
   updateTimer: (time: number) => void;
   addGameResult: (result: Omit<GameResult, 'id' | 'date'>) => void;
   resetCurrentGame: () => void;
-  unlockLevel: (gameType: 'colorMatch' | 'reactionTap', level: 'medium' | 'hard') => void;
-  checkLevelUnlock: (gameType: 'colorMatch' | 'reactionTap', totalXP: number) => void;
+  unlockLevel: (gameType: 'colorMatch' | 'reactionTap' | 'memoryRush', level: 'medium' | 'hard' | 'extreme' | 'extra-hard') => void;
+  checkLevelUnlock: (gameType: 'colorMatch' | 'reactionTap' | 'memoryRush', totalXP: number) => void;
   
   // Getters
   getTotalGamesPlayed: () => number;
   getBestOverallScore: () => number;
-  getGameStats: (gameType: 'colorMatch' | 'reactionTap') => GameStats;
-  isLevelUnlocked: (gameType: 'colorMatch' | 'reactionTap', level: 'easy' | 'medium' | 'hard') => boolean;
+  getGameStats: (gameType: 'colorMatch' | 'reactionTap' | 'memoryRush') => GameStats;
+  isLevelUnlocked: (gameType: 'colorMatch' | 'reactionTap' | 'memoryRush', level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard') => boolean;
 }
 
 const initialStats: GameStats = {
@@ -82,6 +85,7 @@ export const useGameStore = create<GameStore>()(
       // Initial State
       colorMatchStats: initialStats,
       reactionTapStats: initialStats,
+      memoryRushStats: initialStats,
       totalXP: 0,
       currentGame: {
         type: null,
@@ -109,9 +113,9 @@ export const useGameStore = create<GameStore>()(
         const gameType = state.currentGame.type;
         const level = state.currentGame.level;
         
-        if (gameType && (gameType === 'colorMatch' || gameType === 'reactionTap')) {
+        if (gameType && (gameType === 'colorMatch' || gameType === 'reactionTap' || gameType === 'memoryRush')) {
           // Calculate XP (score * 10 + bonus for high scores)
-          const xpEarned = finalScore * 10 + (finalScore > 20 ? 100 : 0);
+          const xpEarned = finalScore * 10 + (finalScore > 20 ? 100 : finalScore > 50 ? 200 : 0);
           
           // Add game result
           get().addGameResult({
@@ -158,11 +162,13 @@ export const useGameStore = create<GameStore>()(
 
         set((state) => {
           const gameType = result.gameType;
-          if (gameType !== 'colorMatch' && gameType !== 'reactionTap') return state;
+          if (gameType !== 'colorMatch' && gameType !== 'reactionTap' && gameType !== 'memoryRush') return state;
 
           const currentStats = gameType === 'colorMatch' 
             ? state.colorMatchStats 
-            : state.reactionTapStats;
+            : gameType === 'reactionTap'
+            ? state.reactionTapStats
+            : state.memoryRushStats;
 
           const newHistory = [gameResult, ...currentStats.gameHistory].slice(0, 50); // Keep last 50 games
           const newTotalGames = currentStats.totalGames + 1;
@@ -194,9 +200,15 @@ export const useGameStore = create<GameStore>()(
             unlockedLevels: newUnlockedLevels,
           };
 
+          const statsProp = gameType === 'colorMatch' 
+            ? 'colorMatchStats' 
+            : gameType === 'reactionTap'
+            ? 'reactionTapStats'
+            : 'memoryRushStats';
+
           return {
             ...state,
-            [gameType === 'colorMatch' ? 'colorMatchStats' : 'reactionTapStats']: updatedStats,
+            [statsProp]: updatedStats,
             totalXP: totalXPNew,
           };
         });
@@ -218,7 +230,9 @@ export const useGameStore = create<GameStore>()(
         set((state) => {
           const currentStats = gameType === 'colorMatch' 
             ? state.colorMatchStats 
-            : state.reactionTapStats;
+            : gameType === 'reactionTap'
+            ? state.reactionTapStats
+            : state.memoryRushStats;
 
           const currentUnlockedLevels = currentStats.unlockedLevels || {
             easy: true,
@@ -234,9 +248,15 @@ export const useGameStore = create<GameStore>()(
             },
           };
 
+          const statsProp = gameType === 'colorMatch' 
+            ? 'colorMatchStats' 
+            : gameType === 'reactionTap'
+            ? 'reactionTapStats'
+            : 'memoryRushStats';
+
           return {
             ...state,
-            [gameType === 'colorMatch' ? 'colorMatchStats' : 'reactionTapStats']: updatedStats,
+            [statsProp]: updatedStats,
           };
         });
       },
@@ -245,7 +265,9 @@ export const useGameStore = create<GameStore>()(
         const state = get();
         const currentStats = gameType === 'colorMatch' 
           ? state.colorMatchStats 
-          : state.reactionTapStats;
+          : gameType === 'reactionTap'
+          ? state.reactionTapStats
+          : state.memoryRushStats;
 
         const currentUnlockedLevels = currentStats.unlockedLevels || {
           easy: true,
@@ -265,11 +287,18 @@ export const useGameStore = create<GameStore>()(
         const state = get();
         const currentStats = gameType === 'colorMatch' 
           ? state.colorMatchStats 
-          : state.reactionTapStats;
+          : gameType === 'reactionTap'
+          ? state.reactionTapStats
+          : state.memoryRushStats;
         
         // Handle case where unlockedLevels might not exist in persisted data
         if (!currentStats.unlockedLevels) {
           return level === 'easy'; // Only easy is unlocked by default
+        }
+        
+        // Handle new levels that might not exist in persisted data
+        if (level === 'extreme' || level === 'extra-hard') {
+          return currentStats.unlockedLevels[level] || false;
         }
         
         return currentStats.unlockedLevels[level];
@@ -278,17 +307,21 @@ export const useGameStore = create<GameStore>()(
       // Getters
       getTotalGamesPlayed: () => {
         const state = get();
-        return state.colorMatchStats.totalGames + state.reactionTapStats.totalGames;
+        return state.colorMatchStats.totalGames + state.reactionTapStats.totalGames + state.memoryRushStats.totalGames;
       },
 
       getBestOverallScore: () => {
         const state = get();
-        return Math.max(state.colorMatchStats.bestScore, state.reactionTapStats.bestScore);
+        return Math.max(state.colorMatchStats.bestScore, state.reactionTapStats.bestScore, state.memoryRushStats.bestScore);
       },
 
       getGameStats: (gameType) => {
         const state = get();
-        return gameType === 'colorMatch' ? state.colorMatchStats : state.reactionTapStats;
+        return gameType === 'colorMatch' 
+          ? state.colorMatchStats 
+          : gameType === 'reactionTap'
+          ? state.reactionTapStats
+          : state.memoryRushStats;
       },
     }),
     {
@@ -297,6 +330,7 @@ export const useGameStore = create<GameStore>()(
       partialize: (state) => ({
         colorMatchStats: state.colorMatchStats,
         reactionTapStats: state.reactionTapStats,
+        memoryRushStats: state.memoryRushStats,
         totalXP: state.totalXP,
       }),
       migrate: (persistedState: any, version: number) => {
@@ -314,6 +348,22 @@ export const useGameStore = create<GameStore>()(
               easy: true,
               medium: false,
               hard: false,
+            };
+          }
+          if (!persistedState.memoryRushStats) {
+            persistedState.memoryRushStats = {
+              totalGames: 0,
+              bestScore: 0,
+              totalXP: 0,
+              averageScore: 0,
+              gameHistory: [],
+              unlockedLevels: {
+                easy: true,
+                medium: false,
+                hard: false,
+                extreme: false,
+                'extra-hard': false,
+              },
             };
           }
         }
@@ -334,6 +384,7 @@ export const useGame = () => {
     // Stats
     colorMatchStats: store.colorMatchStats,
     reactionTapStats: store.reactionTapStats,
+    memoryRushStats: store.memoryRushStats,
     totalXP: store.totalXP,
     
     // Actions

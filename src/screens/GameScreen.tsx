@@ -59,16 +59,16 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
       case 'colorMatch':
         return {
           title: 'Color Match',
-          emoji: '🎨',
+          emoji: '�',
           description: 'Test your focus with the Stroop effect',
           instructions: 'Tap the color that matches the WORD, not the text color!',
         };
-      case 'reactionTap':
+      case 'memoryRush':
         return {
-          title: 'Reaction Tap',
-          emoji: '⚡',
-          description: 'Lightning-fast reaction testing',
-          instructions: 'Tap as soon as the circle turns green!',
+          title: 'Memory Rush',
+          emoji: '🧩',
+          description: 'Color sequence memory challenge',
+          instructions: 'Watch the sequence, then repeat it by tapping colors in order!',
         };
       case 'colorSnake':
         return {
@@ -130,7 +130,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
         </View>
 
         {/* Level Selection */}
-        {(gameType === 'colorMatch' || gameType === 'reactionTap') && (
+        {(gameType === 'colorMatch' || gameType === 'reactionTap' || gameType === 'memoryRush') && (
           <View style={styles.levelSelectionContainer}>
             <Text style={styles.levelSelectionTitle}>Choose Difficulty:</Text>
             
@@ -143,6 +143,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                   navigation.navigate('ColorMatchGame', { level: 'easy' });
                 } else if (gameType === 'reactionTap') {
                   navigation.navigate('ReactionGame', { level: 'easy' });
+                } else if (gameType === 'memoryRush') {
+                  navigation.navigate('MemoryRushGame', { level: 'easy' });
                 }
               }}
             >
@@ -153,7 +155,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                 <View style={styles.levelButtonContent}>
                   <Text style={styles.levelButtonTitle}>🟢 EASY</Text>
                   <Text style={styles.levelButtonSubtitle}>
-                    {gameType === 'colorMatch' ? '4 Colors • 30s' : 'Standard Speed • 5 Rounds'}
+                    {gameType === 'colorMatch' 
+                      ? '4 Colors • 30s' 
+                      : gameType === 'reactionTap'
+                      ? 'Standard Speed • 5 Rounds'
+                      : '4 Colors • 2-5 Sequence'
+                    }
                   </Text>
                   <Text style={styles.levelButtonStatus}>✓ Unlocked</Text>
                   
@@ -186,6 +193,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                   navigation.navigate('ColorMatchGame', { level: 'medium' });
                 } else if (gameType === 'reactionTap') {
                   navigation.navigate('ReactionGame', { level: 'medium' });
+                } else if (gameType === 'memoryRush') {
+                  navigation.navigate('MemoryRushGame', { level: 'medium' });
                 }
               }}
             >
@@ -199,7 +208,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                 <View style={styles.levelButtonContent}>
                   <Text style={styles.levelButtonTitle}>🟡 MEDIUM</Text>
                   <Text style={styles.levelButtonSubtitle}>
-                    {gameType === 'colorMatch' ? '6 Colors • 45s' : 'Faster Speed • 5 Rounds'}
+                    {gameType === 'colorMatch' 
+                      ? '6 Colors • 45s' 
+                      : gameType === 'reactionTap'
+                      ? 'Faster Speed • 5 Rounds'
+                      : '6 Colors • 3-7 Sequence'
+                    }
                   </Text>
                   <Text style={styles.levelButtonStatus}>
                     {isLevelUnlocked(gameType as any, 'medium') 
@@ -239,6 +253,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                   navigation.navigate('ColorMatchGame', { level: 'hard' });
                 } else if (gameType === 'reactionTap') {
                   navigation.navigate('ReactionGame', { level: 'hard' });
+                } else if (gameType === 'memoryRush') {
+                  navigation.navigate('MemoryRushGame', { level: 'hard' });
                 }
               }}
             >
@@ -252,7 +268,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                 <View style={styles.levelButtonContent}>
                   <Text style={styles.levelButtonTitle}>🔴 HARD</Text>
                   <Text style={styles.levelButtonSubtitle}>
-                    {gameType === 'colorMatch' ? '8 Colors • 60s' : 'Lightning Speed • 5 Rounds'}
+                    {gameType === 'colorMatch' 
+                      ? '8 Colors • 60s' 
+                      : gameType === 'reactionTap'
+                      ? 'Lightning Speed • 5 Rounds'
+                      : '6 Colors • 4-9 Sequence'
+                    }
                   </Text>
                   <Text style={styles.levelButtonStatus}>
                     {isLevelUnlocked(gameType as any, 'hard') 
@@ -278,6 +299,79 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                 </View>
               </LinearGradient>
             </TouchableOpacity>
+
+            {/* Memory Rush Extreme Levels */}
+            {gameType === 'memoryRush' && (
+              <>
+                {/* Extreme Level */}
+                <TouchableOpacity
+                  style={[
+                    styles.levelButton,
+                    !isLevelUnlocked('memoryRush', 'extreme') && styles.levelButtonLocked
+                  ]}
+                  activeOpacity={0.8}
+                  disabled={!isLevelUnlocked('memoryRush', 'extreme')}
+                  onPress={() => {
+                    navigation.navigate('MemoryRushGame', { level: 'extreme' });
+                  }}
+                >
+                  <LinearGradient
+                    colors={isLevelUnlocked('memoryRush', 'extreme') 
+                      ? ['#8E2DE2', '#4A00E0'] 
+                      : ['#6B7280', '#4B5563']
+                    }
+                    style={styles.levelButtonGradient}
+                  >
+                    <View style={styles.levelButtonContent}>
+                      <Text style={styles.levelButtonTitle}>🟣 EXTREME</Text>
+                      <Text style={styles.levelButtonSubtitle}>
+                        8 Colors • 5-11 Sequence
+                      </Text>
+                      <Text style={styles.levelButtonStatus}>
+                        {isLevelUnlocked('memoryRush', 'extreme') 
+                          ? '✓ Unlocked' 
+                          : '🔒 Need 60,000 XP'
+                        }
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                {/* Extra Hard Level */}
+                <TouchableOpacity
+                  style={[
+                    styles.levelButton,
+                    !isLevelUnlocked('memoryRush', 'extra-hard') && styles.levelButtonLocked
+                  ]}
+                  activeOpacity={0.8}
+                  disabled={!isLevelUnlocked('memoryRush', 'extra-hard')}
+                  onPress={() => {
+                    navigation.navigate('MemoryRushGame', { level: 'extra-hard' });
+                  }}
+                >
+                  <LinearGradient
+                    colors={isLevelUnlocked('memoryRush', 'extra-hard') 
+                      ? ['#FF006E', '#8E2DE2'] 
+                      : ['#6B7280', '#4B5563']
+                    }
+                    style={styles.levelButtonGradient}
+                  >
+                    <View style={styles.levelButtonContent}>
+                      <Text style={styles.levelButtonTitle}>⚫ EXTRA HARD</Text>
+                      <Text style={styles.levelButtonSubtitle}>
+                        8 Colors • 6-13 Sequence
+                      </Text>
+                      <Text style={styles.levelButtonStatus}>
+                        {isLevelUnlocked('memoryRush', 'extra-hard') 
+                          ? '✓ Unlocked' 
+                          : '🔒 Need 100,000 XP'
+                        }
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         )}
 
