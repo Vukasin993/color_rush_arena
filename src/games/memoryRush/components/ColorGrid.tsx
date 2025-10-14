@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
 
@@ -68,9 +67,6 @@ export const ColorGrid: React.FC<ColorGridProps> = ({
             isLastInput && !isCorrectSoFar && styles.colorButtonError,
           ]}
         >
-          <Text style={styles.colorButtonText}>
-            {color.name.charAt(0)}
-          </Text>
         </LinearGradient>
       </TouchableOpacity>
     );

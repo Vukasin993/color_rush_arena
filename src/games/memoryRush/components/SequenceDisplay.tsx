@@ -100,9 +100,6 @@ export const SequenceDisplay: React.FC<SequenceDisplayProps> = ({
                   isActive && styles.sequenceItemActive,
                 ]}
               >
-                <Text style={styles.sequenceItemText}>
-                  {color.name.charAt(0)}
-                </Text>
               </LinearGradient>
             </Animated.View>
           );

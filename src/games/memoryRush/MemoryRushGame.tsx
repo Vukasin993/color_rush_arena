@@ -24,7 +24,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import { ColorGrid } from './components/ColorGrid';
 import { SequenceDisplay } from './components/SequenceDisplay';
-import { GameOverModal } from './components/GameOverModal';
+import { ProgressFeedback } from './components/ProgressFeedback';
+import { RoundFeedbackModal } from './components/RoundFeedbackModal';
 
 type MemoryRushGameProps = NativeStackScreenProps<RootStackParamList, 'MemoryRushGame'>;
 
@@ -46,79 +47,124 @@ export interface LevelConfig {
   description: string;
 }
 
-const GAME_COLORS: GameColor[] = [
-  { id: '1', color: '#FF6B6B', name: 'Red' },
-  { id: '2', color: '#4ECDC4', name: 'Teal' },
-  { id: '3', color: '#45B7D1', name: 'Blue' },
-  { id: '4', color: '#96CEB4', name: 'Green' },
-  { id: '5', color: '#FECA57', name: 'Yellow' },
-  { id: '6', color: '#FF9FF3', name: 'Pink' },
-  { id: '7', color: '#54A0FF', name: 'Light Blue' },
-  { id: '8', color: '#5F27CD', name: 'Purple' },
-];
+const GAME_COLORS: Record<string, GameColor[]> = {
+  easy: [
+    { id: '1', color: '#E74C3C', name: 'Red' },     // Crvena
+    { id: '2', color: '#3498DB', name: 'Blue' },    // Plava  
+    { id: '3', color: '#F1C40F', name: 'Yellow' },  // Žuta
+    { id: '4', color: '#27AE60', name: 'Green' },   // Zelena
+  ],
+  medium: [
+    { id: '1', color: '#E74C3C', name: 'Red' },     // Crvena
+    { id: '2', color: '#3498DB', name: 'Blue' },    // Plava
+    { id: '3', color: '#F1C40F', name: 'Yellow' },  // Žuta
+    { id: '4', color: '#27AE60', name: 'Green' },   // Zelena
+    { id: '5', color: '#9B59B6', name: 'Purple' },  // Ljubičasta
+  ],
+  hard: [
+    { id: '1', color: '#E74C3C', name: 'Red' },     // Crvena
+    { id: '2', color: '#E67E22', name: 'Orange' },  // Narandžasta (slična crvenoj)
+    { id: '3', color: '#3498DB', name: 'Blue' },    // Plava
+    { id: '4', color: '#1ABC9C', name: 'Cyan' },    // Cijan (slična plavoj)
+    { id: '5', color: '#F1C40F', name: 'Yellow' },  // Žuta
+    { id: '6', color: '#2ECC71', name: 'Lime' },    // Lime (slična žutoj/zelenoj)
+  ],
+  extreme: [
+    { id: '1', color: '#E74C3C', name: 'Red1' },    // Crvena
+    { id: '2', color: '#C0392B', name: 'Red2' },    // Tamno crvena
+    { id: '3', color: '#E67E22', name: 'Orange1' }, // Narandžasta
+    { id: '4', color: '#D35400', name: 'Orange2' }, // Tamno narandžasta
+    { id: '5', color: '#3498DB', name: 'Blue1' },   // Plava
+    { id: '6', color: '#2980B9', name: 'Blue2' },   // Tamno plava
+    { id: '7', color: '#27AE60', name: 'Green1' },  // Zelena
+    { id: '8', color: '#229954', name: 'Green2' },  // Tamno zelena
+  ],
+  'extra-hard': [
+    { id: '1', color: '#E74C3C', name: 'Red1' },    // Vrlo slične nijanse crvene
+    { id: '2', color: '#EC7063', name: 'Red2' },      
+    { id: '3', color: '#C0392B', name: 'Red3' },      
+    { id: '4', color: '#3498DB', name: 'Blue1' },   // Vrlo slične nijanse plave
+    { id: '5', color: '#5DADE2', name: 'Blue2' },    
+    { id: '6', color: '#2E86C1', name: 'Blue3' },    
+    { id: '7', color: '#27AE60', name: 'Green1' },  // Vrlo slične nijanse zelene
+    { id: '8', color: '#58D68D', name: 'Green2' },  
+    { id: '9', color: '#239B56', name: 'Green3' },  
+  ],
+};
 
 const LEVEL_CONFIGS: Record<string, LevelConfig> = {
   easy: {
     name: 'Easy',
     startSequenceLength: 2,
     maxSequenceLength: 5,
-    displaySpeed: 800,
+    displaySpeed: 1000,
     colorCount: 4,
     gridSize: { rows: 2, cols: 2 },
     scoreMultiplier: 1,
-    description: 'Perfect for beginners - 4 colors, slow pace',
+    description: 'Perfect for beginners - 4 distinct colors, slow pace',
   },
   medium: {
     name: 'Medium',
     startSequenceLength: 3,
     maxSequenceLength: 7,
-    displaySpeed: 650,
-    colorCount: 6,
+    displaySpeed: 800,
+    colorCount: 5,
     gridSize: { rows: 2, cols: 3 },
     scoreMultiplier: 1.5,
-    description: 'Getting challenging - 6 colors, medium pace',
+    description: 'Getting challenging - 5 colors, medium pace',
   },
   hard: {
     name: 'Hard',
     startSequenceLength: 4,
     maxSequenceLength: 9,
-    displaySpeed: 500,
+    displaySpeed: 650,
     colorCount: 6,
     gridSize: { rows: 2, cols: 3 },
     scoreMultiplier: 2,
-    description: 'For experts - faster pace, longer sequences',
+    description: 'For experts - similar colors, faster pace',
   },
   extreme: {
     name: 'Extreme',
     startSequenceLength: 5,
     maxSequenceLength: 11,
-    displaySpeed: 450,
+    displaySpeed: 500,
     colorCount: 8,
     gridSize: { rows: 3, cols: 3 },
     scoreMultiplier: 2.5,
-    description: 'Ultimate challenge - 8 colors, very fast',
+    description: 'Similar colors to confuse you - 8 colors, very fast',
   },
   'extra-hard': {
     name: 'Extra Hard',
     startSequenceLength: 6,
     maxSequenceLength: 13,
-    displaySpeed: 400,
-    colorCount: 8,
+    displaySpeed: 450,
+    colorCount: 9,
     gridSize: { rows: 3, cols: 3 },
     scoreMultiplier: 3,
-    description: 'Insane difficulty - lightning fast sequences',
+    description: 'Nearly identical colors - ultimate confusion test',
   },
 };
+
+interface FeedbackSquare {
+  status: 'pending' | 'correct' | 'incorrect';
+  colorId?: string;
+}
 
 interface GameState {
   sequence: string[];
   playerInput: string[];
   currentRound: number;
+  totalRounds: number;
   score: number;
   gameOver: boolean;
   showingSequence: boolean;
   waitingForInput: boolean;
   currentSequenceIndex: number;
+  roundCompleted: boolean;
+  showRoundFeedback: boolean;
+  userProgress: FeedbackSquare[];
+  currentInputIndex: number;
+  roundScore: number;
 }
 
 
@@ -127,18 +173,24 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
   const { level = 'easy', autoStart = false } = route.params || {};
   const { startGame, endGame, updateScore } = useGame();
   const levelConfig = LEVEL_CONFIGS[level];
-  const gameColors = GAME_COLORS.slice(0, levelConfig.colorCount);
+  const gameColors = GAME_COLORS[level] || GAME_COLORS.easy;
 
   const [gameStarted, setGameStarted] = useState(false);
   const [gameState, setGameState] = useState<GameState>({
     sequence: [],
     playerInput: [],
     currentRound: 1,
+    totalRounds: 3,
     score: 0,
     gameOver: false,
     showingSequence: false,
     waitingForInput: false,
     currentSequenceIndex: -1,
+    roundCompleted: false,
+    showRoundFeedback: false,
+    userProgress: [],
+    currentInputIndex: 0,
+    roundScore: 0,
   });
 
   const shakeAnimation = useRef(new Animated.Value(0)).current;
@@ -170,9 +222,12 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
     console.log('displaySequence called with:', sequence);
     setGameState(prev => ({
       ...prev,
+      sequence: sequence,
       showingSequence: true,
       waitingForInput: false,
       currentSequenceIndex: -1,
+      userProgress: sequence.map(() => ({ status: 'pending' as const })),
+      currentInputIndex: 0,
     }));
 
     let index = 0;
@@ -225,9 +280,17 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
     setGameState(prev => {
       const newPlayerInput = [...prev.playerInput, colorId];
       const currentIndex = newPlayerInput.length - 1;
+      const isCorrect = prev.sequence[currentIndex] === colorId;
+      
+      // Update user progress with feedback
+      const newUserProgress = [...prev.userProgress];
+      newUserProgress[currentIndex] = {
+        status: isCorrect ? 'correct' : 'incorrect',
+        colorId: colorId,
+      };
       
       // Check if current input is correct
-      if (prev.sequence[currentIndex] !== colorId) {
+      if (!isCorrect) {
         // Wrong color - game over
         Vibration.vibrate([200, 100, 200]);
         
@@ -259,36 +322,77 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
           ...prev,
           gameOver: true,
           waitingForInput: false,
+          userProgress: newUserProgress,
+          currentInputIndex: currentIndex + 1,
         };
       }
 
       // Correct color
       if (newPlayerInput.length === prev.sequence.length) {
-        // Round completed successfully
-        const roundScore = prev.sequence.length * Math.round(levelConfig.scoreMultiplier);
-        const newScore = prev.score + roundScore;
+        // Sequence completed successfully
+        const baseScore = prev.sequence.length * Math.round(levelConfig.scoreMultiplier * 10);
+        let newScore = prev.score + baseScore;
         
         // Update score in store
         setTimeout(() => {
-          updateScore(roundScore);
+          updateScore(baseScore);
         }, 0);
 
-        // Check if reached max sequence length
+        // Check if reached max sequence length for this round
         if (prev.sequence.length >= levelConfig.maxSequenceLength) {
-          // Game completed - player won!
-          return {
-            ...prev,
-            score: newScore,
-            gameOver: true,
-            waitingForInput: false,
-          };
+          // Round completed!
+          const roundsLeft = prev.totalRounds - prev.currentRound;
+          
+          if (roundsLeft === 0) {
+            // All 3 rounds completed - add bonus points!
+            const bonusPoints = Math.round(baseScore * 2); // 200% bonus
+            newScore += bonusPoints;
+            setTimeout(() => {
+              updateScore(bonusPoints);
+            }, 100);
+            
+            return {
+              ...prev,
+              score: newScore,
+              gameOver: true,
+              waitingForInput: false,
+              roundCompleted: true,
+              showRoundFeedback: true,
+            };
+          } else {
+            // Show round completion feedback and move to next round
+            setTimeout(() => {
+              setGameState(currentState => ({
+                ...currentState,
+                showRoundFeedback: false,
+                currentRound: currentState.currentRound + 1,
+                playerInput: [],
+                waitingForInput: false,
+                showingSequence: false,
+              }));
+              
+              // Start next round
+              const newSequence = generateSequence(1); // Reset to starting length
+              setTimeout(() => {
+                displaySequence(newSequence);
+              }, 500);
+            }, 2000); // Show feedback for 2 seconds
+            
+            return {
+              ...prev,
+              score: newScore,
+              playerInput: [],
+              waitingForInput: false,
+              roundCompleted: true,
+              showRoundFeedback: true,
+            };
+          }
         }
 
-        // Move to next round
-        const nextRound = prev.currentRound + 1;
-        const newSequence = generateSequence(nextRound);
+        // Continue with longer sequence in same round
+        const newSequence = generateSequence(prev.sequence.length + 1);
         
-        // Start next round after a short delay
+        // Start next sequence after a short delay
         setTimeout(() => {
           displaySequence(newSequence);
         }, 1000);
@@ -296,17 +400,19 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
         return {
           ...prev,
           playerInput: [],
-          currentRound: nextRound,
           score: newScore,
           sequence: newSequence,
           waitingForInput: false,
+          showRoundFeedback: false,
         };
       }
 
-      // Continue with current round
+      // More colors needed
       return {
         ...prev,
         playerInput: newPlayerInput,
+        userProgress: newUserProgress,
+        currentInputIndex: currentIndex + 1,
       };
     });
   }, [gameState.waitingForInput, gameState.gameOver, levelConfig.scoreMultiplier, levelConfig.maxSequenceLength, updateScore, generateSequence, displaySequence, shakeAnimation]);
@@ -320,11 +426,17 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
       sequence: initialSequence,
       playerInput: [],
       currentRound: 1,
+      totalRounds: 3,
       score: 0,
       gameOver: false,
       showingSequence: false,
       waitingForInput: false,
       currentSequenceIndex: -1,
+      roundCompleted: false,
+      showRoundFeedback: false,
+      userProgress: initialSequence.map(() => ({ status: 'pending' as const })),
+      currentInputIndex: 0,
+      roundScore: 0,
     });
 
     startGame('memoryRush', level);
@@ -335,6 +447,14 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
     }, 500);
   }, [generateSequence, startGame, level, displaySequence]);
 
+  // Handle round feedback continue
+  const handleRoundContinue = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      showRoundFeedback: false,
+    }));
+  }, []);
+
   // Restart game
   const handleRestart = useCallback(() => {
     const initialSequence = generateSequence(1);
@@ -343,11 +463,17 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
       sequence: initialSequence,
       playerInput: [],
       currentRound: 1,
+      totalRounds: 3,
       score: 0,
       gameOver: false,
       showingSequence: false,
       waitingForInput: false,
       currentSequenceIndex: -1,
+      roundCompleted: false,
+      showRoundFeedback: false,
+      userProgress: initialSequence.map(() => ({ status: 'pending' as const })),
+      currentInputIndex: 0,
+      roundScore: 0,
     });
 
     setTimeout(() => {
@@ -437,12 +563,13 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
           <View style={styles.instructionsContainer}>
             <Text style={styles.instructionsTitle}>How to Play:</Text>
             <Text style={styles.instructionsText}>
+              • 3 ROUNDS to complete this level{'\n'}
               • Watch the color sequence carefully{'\n'}
               • Memorize the order of colors{'\n'}
               • Repeat the sequence by tapping colors{'\n'}
-              • Each round adds one more color{'\n'}
-              • Wrong tap = Game Over!{'\n'}
-              • Reach max sequence to win!
+              • Each sequence gets longer{'\n'}
+              • Complete all 3 rounds for BONUS POINTS!{'\n'}
+              • Wrong tap = Game Over!
             </Text>
           </View>
 
@@ -511,32 +638,55 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
 
           <View style={styles.gameInfo}>
             <Text style={styles.scoreText}>Score: {gameState.score}</Text>
-            <Text style={styles.roundText}>Round: {gameState.currentRound}</Text>
+            <Text style={styles.roundText}>Round: {gameState.currentRound}/{gameState.totalRounds}</Text>
             <Text style={styles.levelText}>{levelConfig.name.toUpperCase()}</Text>
           </View>
         </View>
 
-        {/* Sequence Display */}
-        <SequenceDisplay
-          sequence={gameState.sequence}
-          gameColors={gameColors}
-          showingSequence={gameState.showingSequence}
-          currentSequenceIndex={gameState.currentSequenceIndex}
-        />
+        {/* Sequence Display - Hide when waiting for input */}
+        {(!gameState.waitingForInput || gameState.showRoundFeedback) && (
+          <SequenceDisplay
+            sequence={gameState.sequence}
+            gameColors={gameColors}
+            showingSequence={gameState.showingSequence}
+            currentSequenceIndex={gameState.currentSequenceIndex}
+          />
+        )}
 
         {/* Status Text */}
         <View style={styles.statusContainer}>
-          {gameState.showingSequence && (
+          {gameState.showRoundFeedback && !gameState.gameOver && (
+            <Text style={styles.roundFeedbackText}>
+              🎉 Round {gameState.currentRound - 1} Complete! 🎉{'\n'}
+              {gameState.currentRound <= gameState.totalRounds ? `Starting Round ${gameState.currentRound}...` : 'All rounds complete!'}
+            </Text>
+          )}
+          {gameState.showRoundFeedback && gameState.gameOver && (
+            <Text style={styles.roundFeedbackText}>
+              🏆 ALL 3 ROUNDS COMPLETE! 🏆{'\n'}
+              BONUS POINTS AWARDED!
+            </Text>
+          )}
+          {gameState.showingSequence && !gameState.showRoundFeedback && (
             <Text style={styles.statusText}>
               🧠 Watch the sequence...
             </Text>
           )}
-          {gameState.waitingForInput && (
+          {gameState.waitingForInput && !gameState.showRoundFeedback && (
             <Text style={styles.statusText}>
               👆 Repeat the sequence!
             </Text>
           )}
         </View>
+
+        {/* Progress Feedback */}
+        {gameState.waitingForInput && (
+          <ProgressFeedback
+            sequence={gameState.sequence}
+            userProgress={gameState.userProgress}
+            currentInputIndex={gameState.currentInputIndex}
+          />
+        )}
 
         {/* Color Grid */}
         <ColorGrid
@@ -548,16 +698,31 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
           correctSequence={gameState.sequence}
         />
 
-        {/* Game Over Modal */}
-        <GameOverModal
-          visible={gameState.gameOver}
-          score={gameState.score}
-          round={gameState.currentRound}
-          isWin={gameState.sequence.length >= levelConfig.maxSequenceLength && !gameState.gameOver}
-          onRestart={handleRestart}
-          onExit={() => navigation.goBack()}
-          levelName={levelConfig.name}
+        {/* Round Feedback Modal */}
+        <RoundFeedbackModal
+          visible={gameState.showRoundFeedback && !gameState.gameOver}
+          roundNumber={gameState.currentRound}
+          totalRounds={gameState.totalRounds}
+          roundScore={gameState.roundScore}
+          isRoundComplete={gameState.roundCompleted}
+          onContinue={handleRoundContinue}
         />
+
+        {/* Game Over - temporary simple modal */}
+        {gameState.gameOver && (
+          <View style={styles.gameOverOverlay}>
+            <View style={styles.gameOverModal}>
+              <Text style={styles.gameOverTitle}>Game Over!</Text>
+              <Text style={styles.gameOverScore}>Final Score: {gameState.score}</Text>
+              <TouchableOpacity style={styles.gameButton} onPress={handleRestart}>
+                <Text style={styles.gameButtonText}>Play Again</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.gameButton} onPress={() => navigation.goBack()}>
+                <Text style={styles.gameButtonText}>Back to Menu</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </Animated.View>
     </SafeAreaView>
   );
@@ -786,5 +951,59 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textShadowColor: '#8E2DE2',
     textShadowRadius: 8,
+  },
+  roundFeedbackText: {
+    fontSize: 20,
+    fontFamily: 'Orbitron_700Bold',
+    color: '#00FFC6',
+    textAlign: 'center',
+    textShadowColor: '#00FFC6',
+    textShadowRadius: 10,
+    lineHeight: 28,
+  },
+  gameOverOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gameOverModal: {
+    backgroundColor: '#1A1A2E',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#00FFC6',
+    width: '80%',
+  },
+  gameOverTitle: {
+    fontSize: 24,
+    fontFamily: 'Orbitron_700Bold',
+    color: '#00FFC6',
+    marginBottom: 20,
+  },
+  gameOverScore: {
+    fontSize: 18,
+    fontFamily: 'Orbitron_400Regular',
+    color: '#FFD60A',
+    marginBottom: 30,
+  },
+  gameButton: {
+    backgroundColor: '#00FFC6',
+    borderRadius: 15,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    marginVertical: 5,
+    width: '100%',
+  },
+  gameButtonText: {
+    fontSize: 16,
+    fontFamily: 'Orbitron_700Bold',
+    color: '#1A1A2E',
+    textAlign: 'center',
   },
 });
