@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StatusBar,
   Vibration,
-
   ScrollView,
   Animated,
 } from 'react-native';
@@ -36,113 +35,66 @@ export interface GameColor {
   sound?: string;
 }
 
-export interface LevelConfig {
-  name: string;
-  startSequenceLength: number;
-  maxSequenceLength: number;
-  displaySpeed: number; // ms per color
-  colorCount: number;
-  gridSize: { rows: number; cols: number };
-  scoreMultiplier: number;
-  description: string;
-}
+const GAME_COLORS: GameColor[] = [
+  { id: '1', color: '#E74C3C', name: 'Red' },     // Crvena
+  { id: '2', color: '#3498DB', name: 'Blue' },    // Plava
+  { id: '3', color: '#2ECC71', name: 'Green' },   // Zelena
+  { id: '4', color: '#F39C12', name: 'Orange' },  // Narandžasta
+  { id: '5', color: '#9B59B6', name: 'Purple' },  // Ljubičasta
+  { id: '6', color: '#1ABC9C', name: 'Teal' },    // Tirkizna
+  { id: '7', color: '#E67E22', name: 'Carrot' },  // Šargarepa
+  { id: '8', color: '#34495E', name: 'Navy' },    // Teget
+];
 
-const GAME_COLORS: Record<string, GameColor[]> = {
-  easy: [
-    { id: '1', color: '#E74C3C', name: 'Red' },     // Crvena
-    { id: '2', color: '#3498DB', name: 'Blue' },    // Plava  
-    { id: '3', color: '#F1C40F', name: 'Yellow' },  // Žuta
-    { id: '4', color: '#27AE60', name: 'Green' },   // Zelena
-  ],
-  medium: [
-    { id: '1', color: '#E74C3C', name: 'Red' },     // Crvena
-    { id: '2', color: '#3498DB', name: 'Blue' },    // Plava
-    { id: '3', color: '#F1C40F', name: 'Yellow' },  // Žuta
-    { id: '4', color: '#27AE60', name: 'Green' },   // Zelena
-    { id: '5', color: '#9B59B6', name: 'Purple' },  // Ljubičasta
-  ],
-  hard: [
-    { id: '1', color: '#E74C3C', name: 'Red' },     // Crvena
-    { id: '2', color: '#E67E22', name: 'Orange' },  // Narandžasta (slična crvenoj)
-    { id: '3', color: '#3498DB', name: 'Blue' },    // Plava
-    { id: '4', color: '#1ABC9C', name: 'Cyan' },    // Cijan (slična plavoj)
-    { id: '5', color: '#F1C40F', name: 'Yellow' },  // Žuta
-    { id: '6', color: '#2ECC71', name: 'Lime' },    // Lime (slična žutoj/zelenoj)
-  ],
-  extreme: [
-    { id: '1', color: '#E74C3C', name: 'Red1' },    // Crvena
-    { id: '2', color: '#C0392B', name: 'Red2' },    // Tamno crvena
-    { id: '3', color: '#E67E22', name: 'Orange1' }, // Narandžasta
-    { id: '4', color: '#D35400', name: 'Orange2' }, // Tamno narandžasta
-    { id: '5', color: '#3498DB', name: 'Blue1' },   // Plava
-    { id: '6', color: '#2980B9', name: 'Blue2' },   // Tamno plava
-    { id: '7', color: '#27AE60', name: 'Green1' },  // Zelena
-    { id: '8', color: '#229954', name: 'Green2' },  // Tamno zelena
-  ],
-  'extra-hard': [
-    { id: '1', color: '#E74C3C', name: 'Red1' },    // Vrlo slične nijanse crvene
-    { id: '2', color: '#EC7063', name: 'Red2' },      
-    { id: '3', color: '#C0392B', name: 'Red3' },      
-    { id: '4', color: '#3498DB', name: 'Blue1' },   // Vrlo slične nijanse plave
-    { id: '5', color: '#5DADE2', name: 'Blue2' },    
-    { id: '6', color: '#2E86C1', name: 'Blue3' },    
-    { id: '7', color: '#27AE60', name: 'Green1' },  // Vrlo slične nijanse zelene
-    { id: '8', color: '#58D68D', name: 'Green2' },  
-    { id: '9', color: '#239B56', name: 'Green3' },  
-  ],
+// Progressive difficulty configuration
+const getGameConfig = (level: number) => {
+  let colorCount = 2;
+  let minSequenceLength = 2;
+  let maxSequenceLength = 4;
+  
+  if (level >= 31) {
+    colorCount = 8;
+    minSequenceLength = 8;
+    maxSequenceLength = 15;
+  } else if (level >= 26) {
+    colorCount = 7;
+    minSequenceLength = 7;
+    maxSequenceLength = 13;
+  } else if (level >= 21) {
+    colorCount = 6;
+    minSequenceLength = 6;
+    maxSequenceLength = 11;
+  } else if (level >= 16) {
+    colorCount = 5;
+    minSequenceLength = 5;
+    maxSequenceLength = 10;
+  } else if (level >= 11) {
+    colorCount = 4;
+    minSequenceLength = 4;
+    maxSequenceLength = 8;
+  } else if (level >= 6) {
+    colorCount = 3;
+    minSequenceLength = 3;
+    maxSequenceLength = 6;
+  }
+  
+  const levelInRange = level % 5 || 5;
+  const currentSequenceLength = minSequenceLength + (levelInRange - 1);
+  
+  return {
+    colorCount,
+    currentSequenceLength: Math.min(currentSequenceLength, maxSequenceLength),
+    displaySpeed: Math.max(400, 800 - (level * 10)),
+    gridSize: colorCount <= 2 ? { rows: 1, cols: 2 } : 
+              colorCount <= 4 ? { rows: 2, cols: 2 } :
+              colorCount <= 6 ? { rows: 2, cols: 3 } : { rows: 3, cols: 3 },
+    scoreMultiplier: 1 + (level * 0.1),
+  };
 };
 
-const LEVEL_CONFIGS: Record<string, LevelConfig> = {
-  easy: {
-    name: 'Easy',
-    startSequenceLength: 2,
-    maxSequenceLength: 5,
-    displaySpeed: 1000,
-    colorCount: 4,
-    gridSize: { rows: 2, cols: 2 },
-    scoreMultiplier: 1,
-    description: 'Perfect for beginners - 4 distinct colors, slow pace',
-  },
-  medium: {
-    name: 'Medium',
-    startSequenceLength: 3,
-    maxSequenceLength: 7,
-    displaySpeed: 800,
-    colorCount: 5,
-    gridSize: { rows: 2, cols: 3 },
-    scoreMultiplier: 1.5,
-    description: 'Getting challenging - 5 colors, medium pace',
-  },
-  hard: {
-    name: 'Hard',
-    startSequenceLength: 4,
-    maxSequenceLength: 9,
-    displaySpeed: 650,
-    colorCount: 6,
-    gridSize: { rows: 2, cols: 3 },
-    scoreMultiplier: 2,
-    description: 'For experts - similar colors, faster pace',
-  },
-  extreme: {
-    name: 'Extreme',
-    startSequenceLength: 5,
-    maxSequenceLength: 11,
-    displaySpeed: 500,
-    colorCount: 8,
-    gridSize: { rows: 3, cols: 3 },
-    scoreMultiplier: 2.5,
-    description: 'Similar colors to confuse you - 8 colors, very fast',
-  },
-  'extra-hard': {
-    name: 'Extra Hard',
-    startSequenceLength: 6,
-    maxSequenceLength: 13,
-    displaySpeed: 450,
-    colorCount: 9,
-    gridSize: { rows: 3, cols: 3 },
-    scoreMultiplier: 3,
-    description: 'Nearly identical colors - ultimate confusion test',
-  },
+const getColorsForLevel = (level: number): GameColor[] => {
+  const config = getGameConfig(level);
+  return GAME_COLORS.slice(0, config.colorCount);
 };
 
 interface FeedbackSquare {
@@ -150,47 +102,57 @@ interface FeedbackSquare {
   colorId?: string;
 }
 
+interface PowerUps {
+  repeatSequence: number;
+  skipLevel: number;
+  adsWatched: number;
+}
+
 interface GameState {
   sequence: string[];
   playerInput: string[];
-  currentRound: number;
-  totalRounds: number;
+  currentLevel: number;
   score: number;
   gameOver: boolean;
   showingSequence: boolean;
   waitingForInput: boolean;
   currentSequenceIndex: number;
-  roundCompleted: boolean;
-  showRoundFeedback: boolean;
+  levelCompleted: boolean;
+  showLevelFeedback: boolean;
   userProgress: FeedbackSquare[];
   currentInputIndex: number;
-  roundScore: number;
+  levelScore: number;
+  powerUps: PowerUps;
+  highestLevel: number;
+  canWatchAdToContinue: boolean;
 }
 
-
-
 export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, route }) => {
-  const { level = 'easy', autoStart = false } = route.params || {};
-  const { startGame, endGame, updateScore } = useGame();
-  const levelConfig = LEVEL_CONFIGS[level];
-  const gameColors = GAME_COLORS[level] || GAME_COLORS.easy;
+  const { autoStart = false } = route.params || {};
+  const { startGame, updateScore } = useGame();
 
   const [gameStarted, setGameStarted] = useState(false);
   const [gameState, setGameState] = useState<GameState>({
     sequence: [],
     playerInput: [],
-    currentRound: 1,
-    totalRounds: 3,
+    currentLevel: 1,
     score: 0,
     gameOver: false,
     showingSequence: false,
     waitingForInput: false,
     currentSequenceIndex: -1,
-    roundCompleted: false,
-    showRoundFeedback: false,
+    levelCompleted: false,
+    showLevelFeedback: false,
     userProgress: [],
     currentInputIndex: 0,
-    roundScore: 0,
+    levelScore: 0,
+    powerUps: {
+      repeatSequence: 3,
+      skipLevel: 3,
+      adsWatched: 0,
+    },
+    highestLevel: 1,
+    canWatchAdToContinue: true,
   });
 
   const shakeAnimation = useRef(new Animated.Value(0)).current;
@@ -202,20 +164,18 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
     Orbitron_900Black,
   });
 
-  // Generate new sequence for current round
-  const generateSequence = useCallback((round: number): string[] => {
-    const sequenceLength = Math.min(
-      levelConfig.startSequenceLength + round - 1,
-      levelConfig.maxSequenceLength
-    );
+  // Generate sequence for current level
+  const generateSequence = useCallback((level: number): string[] => {
+    const config = getGameConfig(level);
+    const availableColors = getColorsForLevel(level);
     
     const sequence: string[] = [];
-    for (let i = 0; i < sequenceLength; i++) {
-      const randomColor = gameColors[Math.floor(Math.random() * gameColors.length)];
+    for (let i = 0; i < config.currentSequenceLength; i++) {
+      const randomColor = availableColors[Math.floor(Math.random() * availableColors.length)];
       sequence.push(randomColor.id);
     }
     return sequence;
-  }, [levelConfig, gameColors]);
+  }, []);
 
   // Display sequence to player
   const displaySequence = useCallback((sequence: string[]) => {
@@ -242,33 +202,29 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
         sequenceTimeoutRef.current = setTimeout(() => {
           setGameState(prev => ({
             ...prev,
-            currentSequenceIndex: -1, // Hide color
+            currentSequenceIndex: -1,
           }));
           
           setTimeout(() => {
             index++;
-            if (index < sequence.length) {
-              showNextColor();
-            } else {
-              // Sequence finished, wait for player input after a short delay
-              console.log('Sequence finished, enabling input');
-              setGameState(prev => ({
-                ...prev,
-                showingSequence: false,
-                waitingForInput: true,
-                currentSequenceIndex: -1,
-              }));
-            }
-          }, 200); // Short pause between colors
-        }, levelConfig.displaySpeed);
+            showNextColor();
+          }, 200);
+        }, getGameConfig(gameState.currentLevel).displaySpeed);
+      } else {
+        // Sequence display complete, wait for player input
+        setTimeout(() => {
+          setGameState(prev => ({
+            ...prev,
+            showingSequence: false,
+            waitingForInput: true,
+            currentSequenceIndex: -1,
+          }));
+        }, 500);
       }
     };
 
-    // Start showing sequence after a brief delay
-    setTimeout(() => {
-      showNextColor();
-    }, 500);
-  }, [levelConfig.displaySpeed]);
+    showNextColor();
+  }, [gameState.currentLevel]);
 
   // Handle player color selection
   const handleColorPress = useCallback((colorId: string) => {
@@ -282,19 +238,15 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
       const currentIndex = newPlayerInput.length - 1;
       const isCorrect = prev.sequence[currentIndex] === colorId;
       
-      // Update user progress with feedback
       const newUserProgress = [...prev.userProgress];
       newUserProgress[currentIndex] = {
         status: isCorrect ? 'correct' : 'incorrect',
         colorId: colorId,
       };
       
-      // Check if current input is correct
       if (!isCorrect) {
-        // Wrong color - game over
         Vibration.vibrate([200, 100, 200]);
         
-        // Shake animation
         Animated.sequence([
           Animated.timing(shakeAnimation, {
             toValue: 10,
@@ -327,87 +279,32 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
         };
       }
 
-      // Correct color
+      // Level completed!
       if (newPlayerInput.length === prev.sequence.length) {
-        // Sequence completed successfully
-        const baseScore = prev.sequence.length * Math.round(levelConfig.scoreMultiplier * 10);
+        const config = getGameConfig(prev.currentLevel);
+        const baseScore = prev.sequence.length * Math.round(config.scoreMultiplier * 10);
         let newScore = prev.score + baseScore;
+        const newLevel = prev.currentLevel + 1;
+        const newHighestLevel = Math.max(prev.highestLevel, newLevel);
         
-        // Update score in store
         setTimeout(() => {
           updateScore(baseScore);
         }, 0);
-
-        // Check if reached max sequence length for this round
-        if (prev.sequence.length >= levelConfig.maxSequenceLength) {
-          // Round completed!
-          const roundsLeft = prev.totalRounds - prev.currentRound;
-          
-          if (roundsLeft === 0) {
-            // All 3 rounds completed - add bonus points!
-            const bonusPoints = Math.round(baseScore * 2); // 200% bonus
-            newScore += bonusPoints;
-            setTimeout(() => {
-              updateScore(bonusPoints);
-            }, 100);
-            
-            return {
-              ...prev,
-              score: newScore,
-              gameOver: true,
-              waitingForInput: false,
-              roundCompleted: true,
-              showRoundFeedback: true,
-            };
-          } else {
-            // Show round completion feedback and move to next round
-            setTimeout(() => {
-              setGameState(currentState => ({
-                ...currentState,
-                showRoundFeedback: false,
-                currentRound: currentState.currentRound + 1,
-                playerInput: [],
-                waitingForInput: false,
-                showingSequence: false,
-              }));
-              
-              // Start next round
-              const newSequence = generateSequence(1); // Reset to starting length
-              setTimeout(() => {
-                displaySequence(newSequence);
-              }, 500);
-            }, 2000); // Show feedback for 2 seconds
-            
-            return {
-              ...prev,
-              score: newScore,
-              playerInput: [],
-              waitingForInput: false,
-              roundCompleted: true,
-              showRoundFeedback: true,
-            };
-          }
-        }
-
-        // Continue with longer sequence in same round
-        const newSequence = generateSequence(prev.sequence.length + 1);
         
-        // Start next sequence after a short delay
-        setTimeout(() => {
-          displaySequence(newSequence);
-        }, 1000);
-
         return {
           ...prev,
-          playerInput: [],
           score: newScore,
-          sequence: newSequence,
+          playerInput: [],
           waitingForInput: false,
-          showRoundFeedback: false,
+          levelCompleted: true,
+          showLevelFeedback: true,
+          userProgress: newUserProgress,
+          currentInputIndex: currentIndex + 1,
+          levelScore: baseScore,
+          highestLevel: newHighestLevel,
         };
       }
 
-      // More colors needed
       return {
         ...prev,
         playerInput: newPlayerInput,
@@ -415,7 +312,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
         currentInputIndex: currentIndex + 1,
       };
     });
-  }, [gameState.waitingForInput, gameState.gameOver, levelConfig.scoreMultiplier, levelConfig.maxSequenceLength, updateScore, generateSequence, displaySequence, shakeAnimation]);
+  }, [gameState.waitingForInput, gameState.gameOver, updateScore, generateSequence, displaySequence, shakeAnimation]);
 
   // Start new game
   const handleStartGame = useCallback(() => {
@@ -425,35 +322,56 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
     setGameState({
       sequence: initialSequence,
       playerInput: [],
-      currentRound: 1,
-      totalRounds: 3,
+      currentLevel: 1,
       score: 0,
       gameOver: false,
       showingSequence: false,
       waitingForInput: false,
       currentSequenceIndex: -1,
-      roundCompleted: false,
-      showRoundFeedback: false,
+      levelCompleted: false,
+      showLevelFeedback: false,
       userProgress: initialSequence.map(() => ({ status: 'pending' as const })),
       currentInputIndex: 0,
-      roundScore: 0,
+      levelScore: 0,
+      powerUps: {
+        repeatSequence: 3,
+        skipLevel: 3,
+        adsWatched: 0,
+      },
+      highestLevel: 1,
+      canWatchAdToContinue: true,
     });
 
-    startGame('memoryRush', level);
+    startGame('memoryRush', 'easy');
     
-    // Start displaying the first sequence
     setTimeout(() => {
       displaySequence(initialSequence);
     }, 500);
-  }, [generateSequence, startGame, level, displaySequence]);
+  }, [generateSequence, startGame, displaySequence]);
 
-  // Handle round feedback continue
-  const handleRoundContinue = useCallback(() => {
+  // Handle level feedback continue
+  const handleLevelContinue = useCallback(() => {
+    const newLevel = gameState.currentLevel + 1;
+    const newSequence = generateSequence(newLevel);
+    
     setGameState(prev => ({
       ...prev,
-      showRoundFeedback: false,
+      showLevelFeedback: false,
+      currentLevel: newLevel,
+      sequence: newSequence,
+      playerInput: [],
+      waitingForInput: false,
+      showingSequence: false,
+      userProgress: newSequence.map(() => ({ status: 'pending' as const })),
+      currentInputIndex: 0,
+      levelScore: 0,
+      highestLevel: Math.max(prev.highestLevel, newLevel),
     }));
-  }, []);
+    
+    setTimeout(() => {
+      displaySequence(newSequence);
+    }, 500);
+  }, [gameState.currentLevel, generateSequence, displaySequence]);
 
   // Restart game
   const handleRestart = useCallback(() => {
@@ -462,18 +380,24 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
     setGameState({
       sequence: initialSequence,
       playerInput: [],
-      currentRound: 1,
-      totalRounds: 3,
+      currentLevel: 1,
       score: 0,
       gameOver: false,
       showingSequence: false,
       waitingForInput: false,
       currentSequenceIndex: -1,
-      roundCompleted: false,
-      showRoundFeedback: false,
+      levelCompleted: false,
+      showLevelFeedback: false,
       userProgress: initialSequence.map(() => ({ status: 'pending' as const })),
       currentInputIndex: 0,
-      roundScore: 0,
+      levelScore: 0,
+      powerUps: {
+        repeatSequence: 3,
+        skipLevel: 3,
+        adsWatched: 0,
+      },
+      highestLevel: 1,
+      canWatchAdToContinue: true,
     });
 
     setTimeout(() => {
@@ -481,29 +405,77 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
     }, 500);
   }, [generateSequence, displaySequence]);
 
-  // Handle game over
-  useEffect(() => {
-    if (gameState.gameOver && gameStarted) {
-      const finalScore = gameState.score;
-      
-      if (sequenceTimeoutRef.current) {
-        clearTimeout(sequenceTimeoutRef.current);
-      }
+  // Watch ad to continue
+  const handleWatchAdToContinue = useCallback(() => {
+    // Simulate ad watching (you can integrate real ad SDK here)
+    setTimeout(() => {
+      setGameState(prev => ({
+        ...prev,
+        gameOver: false,
+        waitingForInput: true,
+        canWatchAdToContinue: false, // Can only use once per game
+        powerUps: {
+          ...prev.powerUps,
+          adsWatched: prev.powerUps.adsWatched + 1,
+        },
+      }));
+    }, 1500); // Simulate ad duration
+  }, []);
+
+  // Use repeat sequence power-up
+  const useRepeatSequence = useCallback(() => {
+    if (gameState.powerUps.repeatSequence > 0 && gameState.waitingForInput) {
+      setGameState(prev => ({
+        ...prev,
+        powerUps: {
+          ...prev.powerUps,
+          repeatSequence: prev.powerUps.repeatSequence - 1,
+        },
+        waitingForInput: false,
+      }));
       
       setTimeout(() => {
-        endGame(finalScore);
-      }, 0);
+        displaySequence(gameState.sequence);
+      }, 300);
     }
-  }, [gameState.gameOver, gameState.score, gameStarted, endGame]);
+  }, [gameState.powerUps.repeatSequence, gameState.waitingForInput, gameState.sequence, displaySequence]);
 
-  // Auto-start game if autoStart param is true
+  // Use skip level power-up
+  const useSkipLevel = useCallback(() => {
+    if (gameState.powerUps.skipLevel > 0 && gameState.waitingForInput) {
+      const newLevel = gameState.currentLevel + 1;
+      const newSequence = generateSequence(newLevel);
+      
+      setGameState(prev => ({
+        ...prev,
+        currentLevel: newLevel,
+        sequence: newSequence,
+        playerInput: [],
+        waitingForInput: false,
+        showingSequence: false,
+        userProgress: newSequence.map(() => ({ status: 'pending' as const })),
+        currentInputIndex: 0,
+        highestLevel: Math.max(prev.highestLevel, newLevel),
+        powerUps: {
+          ...prev.powerUps,
+          skipLevel: prev.powerUps.skipLevel - 1,
+        },
+      }));
+      
+      setTimeout(() => {
+        displaySequence(newSequence);
+      }, 500);
+    }
+  }, [gameState.powerUps.skipLevel, gameState.waitingForInput, gameState.currentLevel, generateSequence, displaySequence]);
+
+  // Auto-start if specified
   useEffect(() => {
     if (autoStart && !gameStarted) {
       handleStartGame();
     }
   }, [autoStart, gameStarted, handleStartGame]);
 
-  // Cleanup on unmount
+  // Cleanup timeouts
   useEffect(() => {
     return () => {
       if (sequenceTimeoutRef.current) {
@@ -514,216 +486,217 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
 
   if (!fontsLoaded) {
     return (
-      <SafeAreaView style={styles.loadingContainer} edges={['top', 'bottom']}>
+      <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Loading...</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
-  // Start Screen
-  if (!gameStarted) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
+  const currentConfig = getGameConfig(gameState.currentLevel);
+  const currentColors = getColorsForLevel(gameState.currentLevel);
 
-        {/* Back Button */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={['#8E2DE2', '#4A00E0']}
-            style={styles.backButtonGradient}
-          >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <ScrollView
-          style={styles.startContainer}
-          contentContainerStyle={styles.startContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={styles.gameTitle}>🧩 Memory Rush</Text>
-          <Text style={styles.gameSubtitle}>Color Sequence Challenge</Text>
-
-          {/* Level Info */}
-          <View style={styles.levelInfoContainer}>
-            <Text style={styles.levelTitle}>{levelConfig.name.toUpperCase()} LEVEL</Text>
-            <Text style={styles.levelDescription}>
-              {levelConfig.description}
-            </Text>
-            <Text style={styles.levelStats}>
-              Sequence: {levelConfig.startSequenceLength}-{levelConfig.maxSequenceLength} colors | 
-              Speed: {levelConfig.displaySpeed}ms | Score: x{levelConfig.scoreMultiplier}
-            </Text>
-          </View>
-
-          <View style={styles.instructionsContainer}>
-            <Text style={styles.instructionsTitle}>How to Play:</Text>
-            <Text style={styles.instructionsText}>
-              • 3 ROUNDS to complete this level{'\n'}
-              • Watch the color sequence carefully{'\n'}
-              • Memorize the order of colors{'\n'}
-              • Repeat the sequence by tapping colors{'\n'}
-              • Each sequence gets longer{'\n'}
-              • Complete all 3 rounds for BONUS POINTS!{'\n'}
-              • Wrong tap = Game Over!
-            </Text>
-          </View>
-
-          {/* Color Preview */}
-          <View style={styles.colorPreviewContainer}>
-            <Text style={styles.colorPreviewTitle}>Colors in this level:</Text>
-            <View style={styles.colorPreviewGrid}>
-              {gameColors.map((color, index) => (
-                <View
-                  key={color.id}
-                  style={[
-                    styles.colorPreviewItem,
-                    { backgroundColor: color.color }
-                  ]}
-                />
-              ))}
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.startButton}
-            onPress={handleStartGame}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#00FFC6', '#00D4AA']}
-              style={styles.startButtonGradient}
-            >
-              <Text style={styles.startButtonText}>START GAME</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  // Game Screen
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
-
-      <Animated.View
-        style={[
-          styles.gameContainer,
-          {
-            transform: [{
-              translateX: shakeAnimation,
-            }],
-          },
-        ]}
-      >
-        {/* Header */}
-        <View style={styles.gameHeader}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.8}
-          >
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#0a0e1a" translucent />
+      
+      {!gameStarted ? (
+        // Start Screen
+        <ScrollView style={styles.gameContainer} contentContainerStyle={{ paddingBottom: 100 }}>
+          <View style={styles.startContainer}>
             <LinearGradient
-              colors={['#8E2DE2', '#4A00E0']}
-              style={styles.backButtonGradient}
+              colors={['#1a1a2e', '#16213e', '#0f3460']}
+              style={styles.startGradient}
             >
-              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <View style={styles.gameInfo}>
-            <Text style={styles.scoreText}>Score: {gameState.score}</Text>
-            <Text style={styles.roundText}>Round: {gameState.currentRound}/{gameState.totalRounds}</Text>
-            <Text style={styles.levelText}>{levelConfig.name.toUpperCase()}</Text>
-          </View>
-        </View>
-
-        {/* Sequence Display - Hide when waiting for input */}
-        {(!gameState.waitingForInput || gameState.showRoundFeedback) && (
-          <SequenceDisplay
-            sequence={gameState.sequence}
-            gameColors={gameColors}
-            showingSequence={gameState.showingSequence}
-            currentSequenceIndex={gameState.currentSequenceIndex}
-          />
-        )}
-
-        {/* Status Text */}
-        <View style={styles.statusContainer}>
-          {gameState.showRoundFeedback && !gameState.gameOver && (
-            <Text style={styles.roundFeedbackText}>
-              🎉 Round {gameState.currentRound - 1} Complete! 🎉{'\n'}
-              {gameState.currentRound <= gameState.totalRounds ? `Starting Round ${gameState.currentRound}...` : 'All rounds complete!'}
-            </Text>
-          )}
-          {gameState.showRoundFeedback && gameState.gameOver && (
-            <Text style={styles.roundFeedbackText}>
-              🏆 ALL 3 ROUNDS COMPLETE! 🏆{'\n'}
-              BONUS POINTS AWARDED!
-            </Text>
-          )}
-          {gameState.showingSequence && !gameState.showRoundFeedback && (
-            <Text style={styles.statusText}>
-              🧠 Watch the sequence...
-            </Text>
-          )}
-          {gameState.waitingForInput && !gameState.showRoundFeedback && (
-            <Text style={styles.statusText}>
-              👆 Repeat the sequence!
-            </Text>
-          )}
-        </View>
-
-        {/* Progress Feedback */}
-        {gameState.waitingForInput && (
-          <ProgressFeedback
-            sequence={gameState.sequence}
-            userProgress={gameState.userProgress}
-            currentInputIndex={gameState.currentInputIndex}
-          />
-        )}
-
-        {/* Color Grid */}
-        <ColorGrid
-          colors={gameColors}
-          onColorPress={handleColorPress}
-          disabled={!gameState.waitingForInput}
-          gridSize={levelConfig.gridSize}
-          playerInput={gameState.playerInput}
-          correctSequence={gameState.sequence}
-        />
-
-        {/* Round Feedback Modal */}
-        <RoundFeedbackModal
-          visible={gameState.showRoundFeedback && !gameState.gameOver}
-          roundNumber={gameState.currentRound}
-          totalRounds={gameState.totalRounds}
-          roundScore={gameState.roundScore}
-          isRoundComplete={gameState.roundCompleted}
-          onContinue={handleRoundContinue}
-        />
-
-        {/* Game Over - temporary simple modal */}
-        {gameState.gameOver && (
-          <View style={styles.gameOverOverlay}>
-            <View style={styles.gameOverModal}>
-              <Text style={styles.gameOverTitle}>Game Over!</Text>
-              <Text style={styles.gameOverScore}>Final Score: {gameState.score}</Text>
-              <TouchableOpacity style={styles.gameButton} onPress={handleRestart}>
-                <Text style={styles.gameButtonText}>Play Again</Text>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="arrow-back" size={24} color="#00FFC6" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.gameButton} onPress={() => navigation.goBack()}>
-                <Text style={styles.gameButtonText}>Back to Menu</Text>
+
+              <View style={styles.titleContainer}>
+                <Text style={styles.gameTitle}>🧩 Memory Rush</Text>
+                <Text style={styles.gameSubtitle}>Endless Color Challenge</Text>
+              </View>
+
+              <View style={styles.levelInfoContainer}>
+                <Text style={styles.levelTitle}>ENDLESS MODE</Text>
+                <Text style={styles.levelDescription}>
+                  Infinite levels with progressive difficulty! How far can you go?
+                </Text>
+                <Text style={styles.levelStats}>
+                  Start: 2 colors, 2 sequence | Colors increase every 5 levels
+                </Text>
+              </View>
+
+              <View style={styles.instructionsContainer}>
+                <Text style={styles.instructionsTitle}>How to Play:</Text>
+                <Text style={styles.instructionsText}>
+                  • INFINITE LEVELS - No limit!{'\n'}
+                  • Watch the color sequence carefully{'\n'}
+                  • Memorize the order of colors{'\n'}
+                  • Repeat the sequence by tapping colors{'\n'}
+                  • Level up after each successful sequence{'\n'}
+                  • More colors unlock as you progress{'\n'}
+                  • Wrong tap = Game Over!{'\n'}
+                  • Powerups: Repeat (3x), Skip Level (3x)
+                </Text>
+              </View>
+
+              <View style={styles.colorPreviewContainer}>
+                <Text style={styles.colorPreviewTitle}>Starting colors:</Text>
+                <View style={styles.colorPreviewGrid}>
+                  {getColorsForLevel(1).map((color) => (
+                    <View key={color.id} style={[styles.colorPreviewItem, { backgroundColor: color.color }]} />
+                  ))}
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.startButton} onPress={handleStartGame} activeOpacity={0.8}>
+                <LinearGradient colors={['#00FFC6', '#00D4AA']} style={styles.startButtonGradient}>
+                  <Text style={styles.startButtonText}>🎮 START ENDLESS MODE</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
+        </ScrollView>
+      ) : (
+        // Game Screen
+        <View style={styles.gameContainer}>
+          {/* Game Header */}
+          <View style={styles.gameHeader}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="arrow-back" size={24} color="#00FFC6" />
+            </TouchableOpacity>
+            
+            <View style={styles.gameInfo}>
+              <Text style={styles.scoreText}>{gameState.score}</Text>
+              <Text style={styles.levelText}>Level: {gameState.currentLevel}</Text>
+              <Text style={styles.levelText}>Best: {gameState.highestLevel}</Text>
+            </View>
+
+            {/* Power-ups */}
+            <View style={styles.powerUpsContainer}>
+              <TouchableOpacity
+                style={[styles.powerUpButton, gameState.powerUps.repeatSequence === 0 && styles.powerUpDisabled]}
+                onPress={useRepeatSequence}
+                disabled={gameState.powerUps.repeatSequence === 0 || !gameState.waitingForInput}
+              >
+                <Text style={styles.powerUpText}>🔄 {gameState.powerUps.repeatSequence}</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.powerUpButton, gameState.powerUps.skipLevel === 0 && styles.powerUpDisabled]}
+                onPress={useSkipLevel}
+                disabled={gameState.powerUps.skipLevel === 0 || !gameState.waitingForInput}
+              >
+                <Text style={styles.powerUpText}>⏭️ {gameState.powerUps.skipLevel}</Text>
               </TouchableOpacity>
             </View>
           </View>
-        )}
-      </Animated.View>
+
+          {/* Sequence Display */}
+          {(!gameState.waitingForInput || gameState.showLevelFeedback) && (
+            <SequenceDisplay
+              sequence={gameState.sequence}
+              gameColors={currentColors}
+              showingSequence={gameState.showingSequence}
+              currentSequenceIndex={gameState.currentSequenceIndex}
+            />
+          )}
+
+          {/* Progress Feedback */}
+          {gameState.waitingForInput && (
+            <ProgressFeedback
+              sequence={gameState.sequence}
+              userProgress={gameState.userProgress}
+              currentInputIndex={gameState.currentInputIndex}
+            />
+          )}
+
+          {/* Status Messages */}
+          <View style={styles.statusContainer}>
+            {gameState.showLevelFeedback && !gameState.gameOver && (
+              <Text style={styles.levelFeedbackText}>
+                🎉 Level {gameState.currentLevel - 1} Complete! 🎉{'\n'}
+                Next Level: {currentConfig.colorCount} colors, {currentConfig.currentSequenceLength} sequence
+              </Text>
+            )}
+            {gameState.showLevelFeedback && gameState.gameOver && (
+              <Text style={styles.levelFeedbackText}>
+                🏆 FINAL LEVEL: {gameState.currentLevel} 🏆{'\n'}
+                AMAZING PERFORMANCE!
+              </Text>
+            )}
+            {gameState.showingSequence && !gameState.showLevelFeedback && (
+              <Text style={styles.statusText}>
+                🧠 Watch the sequence... (Level {gameState.currentLevel})
+              </Text>
+            )}
+            {gameState.waitingForInput && !gameState.showLevelFeedback && (
+              <Text style={styles.statusText}>
+                👆 Repeat the sequence! ({gameState.currentInputIndex}/{gameState.sequence.length})
+              </Text>
+            )}
+          </View>
+
+          {/* Color Grid */}
+          <Animated.View style={[styles.gridContainer, { transform: [{ translateX: shakeAnimation }] }]}>
+            <ColorGrid
+              colors={currentColors}
+              onColorPress={handleColorPress}
+              disabled={!gameState.waitingForInput}
+              gridSize={currentConfig.gridSize}
+              playerInput={gameState.playerInput}
+              correctSequence={gameState.sequence}
+            />
+          </Animated.View>
+
+          {/* Level Feedback Modal */}
+          <RoundFeedbackModal
+            visible={gameState.showLevelFeedback && !gameState.gameOver}
+            roundNumber={gameState.currentLevel}
+            totalRounds={999} // Endless
+            roundScore={gameState.levelScore}
+            isRoundComplete={gameState.levelCompleted}
+            onContinue={handleLevelContinue}
+          />
+
+          {/* Game Over */}
+          {gameState.gameOver && (
+            <View style={styles.gameOverOverlay}>
+              <View style={styles.gameOverModal}>
+                <Text style={styles.gameOverTitle}>Game Over!</Text>
+                <Text style={styles.gameOverScore}>Final Level: {gameState.currentLevel}</Text>
+                <Text style={styles.gameOverScore}>Final Score: {gameState.score}</Text>
+                <Text style={styles.gameOverScore}>Best Level: {gameState.highestLevel}</Text>
+                
+                {/* Watch Ad to Continue - only once per game */}
+                {gameState.canWatchAdToContinue && (
+                  <TouchableOpacity 
+                    style={[styles.gameButton, styles.adButton]} 
+                    onPress={handleWatchAdToContinue}
+                  >
+                    <Text style={styles.gameButtonText}>🎥 Watch Ad to Continue</Text>
+                  </TouchableOpacity>
+                )}
+                
+                <TouchableOpacity style={styles.gameButton} onPress={handleRestart}>
+                  <Text style={styles.gameButtonText}>Play Again</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.gameButton} onPress={() => navigation.goBack()}>
+                  <Text style={styles.gameButtonText}>Back to Menu</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -731,86 +704,75 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({ navigation, rout
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F0F1B',
+    backgroundColor: '#0a0e1a',
   },
   gameContainer: {
     flex: 1,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0F0F1B',
+    backgroundColor: '#0a0e1a',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: '#8E2DE2',
     fontSize: 18,
     fontFamily: 'Orbitron_400Regular',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    borderRadius: 20,
-    elevation: 8,
-    shadowColor: '#8E2DE2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    zIndex: 1000,
-  },
-  backButtonGradient: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    color: '#00FFC6',
   },
   startContainer: {
     flex: 1,
-  },
-  startContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 20,
-    paddingTop: 80,
+  },
+  startGradient: {
+    flex: 1,
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 10,
+    padding: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 255, 198, 0.1)',
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+    marginTop: 80,
   },
   gameTitle: {
-    fontSize: 36,
+    fontSize: 32,
     fontFamily: 'Orbitron_900Black',
-    color: '#FFFFFF',
+    color: '#00FFC6',
     textAlign: 'center',
-    marginBottom: 10,
     textShadowColor: '#00FFC6',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 20,
+    textShadowRadius: 15,
+    marginBottom: 10,
   },
   gameSubtitle: {
     fontSize: 16,
     fontFamily: 'Orbitron_400Regular',
     color: '#B8B8D1',
     textAlign: 'center',
-    marginBottom: 30,
   },
   levelInfoContainer: {
-    backgroundColor: 'rgba(26, 26, 46, 0.8)',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 255, 198, 0.3)',
-    width: '100%',
     alignItems: 'center',
+    marginBottom: 30,
+    paddingHorizontal: 20,
   },
   levelTitle: {
-    fontSize: 18,
+    fontSize: 24,
     fontFamily: 'Orbitron_700Bold',
-    color: '#00FFC6',
+    color: '#FFD60A',
     textAlign: 'center',
-    marginBottom: 8,
-    textShadowColor: '#00FFC6',
+    textShadowColor: '#FFD60A',
     textShadowRadius: 8,
+    marginBottom: 10,
   },
   levelDescription: {
     fontSize: 14,
@@ -821,58 +783,47 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   levelStats: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'Orbitron_400Regular',
-    color: '#FFD60A',
+    color: '#8E2DE2',
     textAlign: 'center',
     lineHeight: 16,
   },
   instructionsContainer: {
-    backgroundColor: 'rgba(26, 26, 46, 0.8)',
-    borderRadius: 20,
-    padding: 25,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 255, 198, 0.3)',
-    width: '100%',
+    alignItems: 'center',
+    marginBottom: 30,
+    paddingHorizontal: 20,
   },
   instructionsTitle: {
     fontSize: 18,
     fontFamily: 'Orbitron_700Bold',
     color: '#00FFC6',
-    marginBottom: 15,
     textAlign: 'center',
+    marginBottom: 15,
     textShadowColor: '#00FFC6',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    textShadowRadius: 5,
   },
   instructionsText: {
     fontSize: 14,
     fontFamily: 'Orbitron_400Regular',
     color: '#FFFFFF',
+    textAlign: 'center',
     lineHeight: 22,
-    textAlign: 'left',
   },
   colorPreviewContainer: {
-    backgroundColor: 'rgba(26, 26, 46, 0.8)',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 30,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 255, 198, 0.3)',
-    width: '100%',
     alignItems: 'center',
+    marginBottom: 40,
   },
   colorPreviewTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Orbitron_700Bold',
-    color: '#00FFC6',
+    color: '#FFD60A',
     marginBottom: 15,
-    textAlign: 'center',
+    textShadowColor: '#FFD60A',
+    textShadowRadius: 5,
   },
   colorPreviewGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 10,
   },
@@ -899,7 +850,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   startButtonText: {
-    fontSize: 18,
+    fontSize: 14,
     fontFamily: 'Orbitron_700Bold',
     color: '#FFFFFF',
     textShadowColor: 'rgba(0,0,0,0.3)',
@@ -926,17 +877,33 @@ const styles = StyleSheet.create({
     textShadowColor: '#FFD60A',
     textShadowRadius: 8,
   },
-  roundText: {
-    fontSize: 16,
+  levelText: {
+    fontSize: 14,
     fontFamily: 'Orbitron_400Regular',
     color: '#00FFC6',
     textShadowColor: '#00FFC6',
     textShadowRadius: 5,
   },
-  levelText: {
+  powerUpsContainer: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  powerUpButton: {
+    backgroundColor: 'rgba(0, 255, 198, 0.2)',
+    borderRadius: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#00FFC6',
+  },
+  powerUpDisabled: {
+    backgroundColor: 'rgba(128, 128, 128, 0.2)',
+    borderColor: '#666',
+  },
+  powerUpText: {
     fontSize: 12,
-    fontFamily: 'Orbitron_400Regular',
-    color: '#B8B8D1',
+    fontFamily: 'Orbitron_700Bold',
+    color: '#00FFC6',
   },
   statusContainer: {
     alignItems: 'center',
@@ -952,7 +919,7 @@ const styles = StyleSheet.create({
     textShadowColor: '#8E2DE2',
     textShadowRadius: 8,
   },
-  roundFeedbackText: {
+  levelFeedbackText: {
     fontSize: 20,
     fontFamily: 'Orbitron_700Bold',
     color: '#00FFC6',
@@ -960,6 +927,11 @@ const styles = StyleSheet.create({
     textShadowColor: '#00FFC6',
     textShadowRadius: 10,
     lineHeight: 28,
+  },
+  gridContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   gameOverOverlay: {
     position: 'absolute',
@@ -987,10 +959,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   gameOverScore: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'Orbitron_400Regular',
     color: '#FFD60A',
-    marginBottom: 30,
+    marginBottom: 10,
   },
   gameButton: {
     backgroundColor: '#00FFC6',
@@ -1005,5 +977,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Orbitron_700Bold',
     color: '#1A1A2E',
     textAlign: 'center',
+  },
+  adButton: {
+    backgroundColor: '#FFD60A',
+    borderColor: '#FFB800',
+    borderWidth: 2,
+    shadowColor: '#FFD60A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

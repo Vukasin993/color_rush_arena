@@ -130,7 +130,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
         </View>
 
         {/* Level Selection */}
-        {(gameType === 'colorMatch' || gameType === 'reactionTap' || gameType === 'memoryRush') && (
+        {(gameType === 'colorMatch' || gameType === 'reactionTap') && (
           <View style={styles.levelSelectionContainer}>
             <Text style={styles.levelSelectionTitle}>Choose Difficulty:</Text>
             
@@ -143,8 +143,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                   navigation.navigate('ColorMatchGame', { level: 'easy' });
                 } else if (gameType === 'reactionTap') {
                   navigation.navigate('ReactionGame', { level: 'easy' });
-                } else if (gameType === 'memoryRush') {
-                  navigation.navigate('MemoryRushGame', { level: 'easy' });
                 }
               }}
             >
@@ -193,8 +191,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                   navigation.navigate('ColorMatchGame', { level: 'medium' });
                 } else if (gameType === 'reactionTap') {
                   navigation.navigate('ReactionGame', { level: 'medium' });
-                } else if (gameType === 'memoryRush') {
-                  navigation.navigate('MemoryRushGame', { level: 'medium' });
                 }
               }}
             >
@@ -253,8 +249,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                   navigation.navigate('ColorMatchGame', { level: 'hard' });
                 } else if (gameType === 'reactionTap') {
                   navigation.navigate('ReactionGame', { level: 'hard' });
-                } else if (gameType === 'memoryRush') {
-                  navigation.navigate('MemoryRushGame', { level: 'hard' });
                 }
               }}
             >
@@ -300,78 +294,24 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* Memory Rush Extreme Levels */}
-            {gameType === 'memoryRush' && (
-              <>
-                {/* Extreme Level */}
-                <TouchableOpacity
-                  style={[
-                    styles.levelButton,
-                    !isLevelUnlocked('memoryRush', 'extreme') && styles.levelButtonLocked
-                  ]}
-                  activeOpacity={0.8}
-                  disabled={!isLevelUnlocked('memoryRush', 'extreme')}
-                  onPress={() => {
-                    navigation.navigate('MemoryRushGame', { level: 'extreme' });
-                  }}
-                >
-                  <LinearGradient
-                    colors={isLevelUnlocked('memoryRush', 'extreme') 
-                      ? ['#8E2DE2', '#4A00E0'] 
-                      : ['#6B7280', '#4B5563']
-                    }
-                    style={styles.levelButtonGradient}
-                  >
-                    <View style={styles.levelButtonContent}>
-                      <Text style={styles.levelButtonTitle}>🟣 EXTREME</Text>
-                      <Text style={styles.levelButtonSubtitle}>
-                        8 Colors • 5-11 Sequence
-                      </Text>
-                      <Text style={styles.levelButtonStatus}>
-                        {isLevelUnlocked('memoryRush', 'extreme') 
-                          ? '✓ Unlocked' 
-                          : '🔒 Need 60,000 XP'
-                        }
-                      </Text>
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
+          </View>
+        )}
 
-                {/* Extra Hard Level */}
-                <TouchableOpacity
-                  style={[
-                    styles.levelButton,
-                    !isLevelUnlocked('memoryRush', 'extra-hard') && styles.levelButtonLocked
-                  ]}
-                  activeOpacity={0.8}
-                  disabled={!isLevelUnlocked('memoryRush', 'extra-hard')}
-                  onPress={() => {
-                    navigation.navigate('MemoryRushGame', { level: 'extra-hard' });
-                  }}
-                >
-                  <LinearGradient
-                    colors={isLevelUnlocked('memoryRush', 'extra-hard') 
-                      ? ['#FF006E', '#8E2DE2'] 
-                      : ['#6B7280', '#4B5563']
-                    }
-                    style={styles.levelButtonGradient}
-                  >
-                    <View style={styles.levelButtonContent}>
-                      <Text style={styles.levelButtonTitle}>⚫ EXTRA HARD</Text>
-                      <Text style={styles.levelButtonSubtitle}>
-                        8 Colors • 6-13 Sequence
-                      </Text>
-                      <Text style={styles.levelButtonStatus}>
-                        {isLevelUnlocked('memoryRush', 'extra-hard') 
-                          ? '✓ Unlocked' 
-                          : '🔒 Need 100,000 XP'
-                        }
-                      </Text>
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </>
-            )}
+        {/* Memory Rush - Direct Start */}
+        {gameType === 'memoryRush' && (
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('MemoryRushGame', { autoStart: true })}
+            >
+              <LinearGradient
+                colors={['#00FFC6', '#00D4AA']}
+                style={styles.actionButtonGradient}
+              >
+                <Text style={styles.actionButtonText}>🎮 START ENDLESS MODE</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -543,7 +483,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionButtonText: {
-    fontSize: 18,
+    fontSize: 14,
     fontFamily: 'Orbitron_700Bold',
     color: '#FFFFFF',
     textShadowColor: 'rgba(0,0,0,0.3)',
@@ -551,18 +491,19 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   secondaryButton: {
-    backgroundColor: 'rgba(142, 45, 226, 0.2)',
+    marginTop: 20,
+    backgroundColor: 'rgba(127, 2, 237, 0.2)',
     borderRadius: 25,
     borderWidth: 2,
-    borderColor: 'rgba(142, 45, 226, 0.4)',
+    borderColor: '#bf82f5ff',
     paddingVertical: 16,
     paddingHorizontal: 40,
     alignItems: 'center',
   },
   secondaryButtonText: {
-    fontSize: 16,
-    fontFamily: 'Orbitron_400Regular',
-    color: '#8E2DE2',
+    fontSize: 14,
+    fontFamily: 'Orbitron_700Bold',
+    color: '#bf82f5ff',
   },
   levelSelectionContainer: {
     marginBottom: 60,

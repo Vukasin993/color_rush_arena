@@ -77,7 +77,7 @@ export const RoundFeedbackModal: React.FC<RoundFeedbackModalProps> = ({
     if (score >= 80) return "Excellent! 🎉";
     if (score >= 60) return "Good job! 👍";
     if (score >= 40) return "Not bad! 💪";
-    return "Keep trying! 💫";
+    return "Keep going! 💫";
   };
 
   return (
@@ -130,23 +130,6 @@ export const RoundFeedbackModal: React.FC<RoundFeedbackModalProps> = ({
               <Text style={styles.scoreMessage}>
                 {getScoreMessage(roundScore)}
               </Text>
-            </View>
-
-            {/* Progress dots */}
-            <View style={styles.progressDots}>
-              {Array.from({ length: totalRounds }, (_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.progressDot,
-                    index < roundNumber 
-                      ? styles.completedDot 
-                      : index === roundNumber - 1 
-                        ? styles.currentDot 
-                        : styles.pendingDot
-                  ]}
-                />
-              ))}
             </View>
 
             {/* Subtitle */}

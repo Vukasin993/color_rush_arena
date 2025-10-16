@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "color_rush_arena",
-    "slug": "color_rush_arena",
+    "name": "Color Rush Arena",
+    "slug": "memory-quest",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/cra.png",
     "scheme": "colorrusharena",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,10 +14,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "monochromeImage": "./assets/images/adaptive-icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -57,7 +57,12 @@
           "messagingSenderId": "768614624509",
           "appId": "1:768614624509:android:fade9616b8d620d5b3e294"
         }
+      },
+      "router": {},
+      "eas": {
+        "projectId": "047db76d-0fe9-4c1f-8b40-9f313690863a"
       }
-    }
+    },
+    "owner": "vukasin93"
   }
 }

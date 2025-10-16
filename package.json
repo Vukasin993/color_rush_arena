@@ -8,7 +8,14 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "build-local:apk": "eas build --platform android --profile preview --local",
+    "build-local:aab": "eas build --platform android --profile production --local",
+    "build:apk": "eas build --profile preview --platform android",
+    "build:bundle": "eas build --profile production --platform android",
+    "build:dev": "eas build --profile development --platform android",
+    "prebuild": "npx expo prebuild --clean",
+    "prebuild:clean": "npx expo prebuild --clean && npx expo run:android"
   },
   "dependencies": {
     "@expo-google-fonts/orbitron": "^0.4.2",
