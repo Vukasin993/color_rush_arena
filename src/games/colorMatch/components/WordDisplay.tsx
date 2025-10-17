@@ -1,11 +1,11 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import React from "react";
+import { View, StyleSheet } from "react-native";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import {
   useFonts,
   Orbitron_400Regular,
   Orbitron_700Bold,
-} from '@expo-google-fonts/orbitron';
+} from "@expo-google-fonts/orbitron";
 
 interface ColorData {
   name: string;
@@ -17,12 +17,14 @@ interface WordDisplayProps {
   currentWord: ColorData;
   currentTextColor: string;
   pulseAnimation: any;
+  colors: ColorData[];
 }
 
 export const WordDisplay: React.FC<WordDisplayProps> = ({
   currentWord,
   currentTextColor,
   pulseAnimation,
+  colors,
 }) => {
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
@@ -37,18 +39,14 @@ export const WordDisplay: React.FC<WordDisplayProps> = ({
   if (!fontsLoaded) return null;
 
   return (
-    <View style={styles.wordContainer}>
-      <Animated.Text style={[styles.instructionText]}>
+    <View style={{ ...styles.wordContainer, marginBottom: colors?.length > 4 ? 20 : 60 }}>
+      <Animated.Text style={[styles.instructionText, { fontSize: colors?.length > 4 ? 12 : 16 }]}>
         What COLOR is this WORD?
       </Animated.Text>
 
       {/* ✅ Umesto <Animated.View> + <Text> → jedan Animated.Text */}
       <Animated.Text
-        style={[
-          styles.colorWord,
-          animatedStyle,
-          { color: currentTextColor },
-        ]}
+        style={[styles.colorWord, animatedStyle, { color: currentTextColor, fontSize: colors?.length > 4 ? 32 : 48 }]}
       >
         {currentWord.name}
       </Animated.Text>
@@ -58,20 +56,18 @@ export const WordDisplay: React.FC<WordDisplayProps> = ({
 
 const styles = StyleSheet.create({
   wordContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 60,
   },
   instructionText: {
-    fontSize: 16,
-    fontFamily: 'Orbitron_400Regular',
-    color: '#B8B8D1',
-    textAlign: 'center',
-    marginBottom: 20,
+    fontFamily: "Orbitron_400Regular",
+    color: "#B8B8D1",
+    textAlign: "center",
+    marginBottom: 10,
   },
   colorWord: {
-    fontSize: 48,
-    fontFamily: 'Orbitron_700Bold',
-    textAlign: 'center',
+    fontFamily: "Orbitron_700Bold",
+    textAlign: "center",
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 15,
     letterSpacing: 2,

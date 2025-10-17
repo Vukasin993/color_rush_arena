@@ -59,7 +59,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
       case 'colorMatch':
         return {
           title: 'Color Match',
-          emoji: '�',
+          emoji: '🎨',
           description: 'Test your focus with the Stroop effect',
           instructions: 'Tap the color that matches the WORD, not the text color!',
         };
@@ -185,7 +185,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                 !isLevelUnlocked(gameType as any, 'medium') && styles.levelButtonLocked
               ]}
               activeOpacity={0.8}
-              // disabled={!isLevelUnlocked(gameType as any, 'medium')}
+              disabled={!isLevelUnlocked(gameType as any, 'medium')}
               onPress={() => {
                 if (gameType === 'colorMatch') {
                   navigation.navigate('ColorMatchGame', { level: 'medium' });
@@ -243,7 +243,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                 !isLevelUnlocked(gameType as any, 'hard') && styles.levelButtonLocked
               ]}
               activeOpacity={0.8}
-              disabled={!isLevelUnlocked(gameType as any, 'hard')}
+              // disabled={!isLevelUnlocked(gameType as any, 'hard')}
               onPress={() => {
                 if (gameType === 'colorMatch') {
                   navigation.navigate('ColorMatchGame', { level: 'hard' });

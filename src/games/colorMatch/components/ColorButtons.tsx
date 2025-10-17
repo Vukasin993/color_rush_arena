@@ -1,10 +1,7 @@
-import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import {
-  useFonts,
-  Orbitron_700Bold,
-} from '@expo-google-fonts/orbitron';
+import React from "react";
+import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useFonts, Orbitron_700Bold } from "@expo-google-fonts/orbitron";
 
 interface ColorData {
   name: string;
@@ -32,7 +29,13 @@ export const ColorButtons: React.FC<ColorButtonsProps> = ({
       {colors.map((color) => (
         <TouchableOpacity
           key={color.name}
-          style={[styles.colorButton, { borderColor: color.value }]}
+          style={[
+            styles.colorButton,
+            {
+              borderColor: color.value,
+              width: colors?.length > 4 ? "35%" : "48%",
+            },
+          ]}
           onPress={() => onColorPress(color)}
           activeOpacity={0.7}
         >
@@ -43,10 +46,14 @@ export const ColorButtons: React.FC<ColorButtonsProps> = ({
             <View
               style={[
                 styles.colorButtonInner,
-                { backgroundColor: color.value }
+                {
+                  backgroundColor: color.value,
+                  width: colors?.length > 4 ? 24 : 40,
+                  height: colors?.length > 4 ? 24 : 40,
+                },
               ]}
             />
-            <Text style={[styles.colorButtonText, { color: color.textColor }]}>
+            <Text style={[styles.colorButtonText, { color: color.textColor, fontSize: colors?.length > 4 ? 12 : 16 }]}>
               {color.name}
             </Text>
           </LinearGradient>
@@ -58,17 +65,16 @@ export const ColorButtons: React.FC<ColorButtonsProps> = ({
 
 const styles = StyleSheet.create({
   buttonsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
   },
   colorButton: {
-    width: '48%',
     aspectRatio: 1.2,
     borderRadius: 15,
     borderWidth: 2,
-    overflow: 'hidden',
+    overflow: "hidden",
     elevation: 8,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -78,24 +84,21 @@ const styles = StyleSheet.create({
   colorButtonGradient: {
     flex: 1,
     padding: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 13,
   },
   colorButtonInner: {
-    width: 40,
-    height: 40,
     borderRadius: 20,
     marginBottom: 10,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
   colorButtonText: {
-    fontSize: 16,
-    fontFamily: 'Orbitron_700Bold',
+    fontFamily: "Orbitron_700Bold",
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
   },

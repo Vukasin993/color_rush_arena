@@ -320,6 +320,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
           currentWord={currentWord}
           currentTextColor={currentTextColor}
           pulseAnimation={pulseAnimation}
+          colors={COLORS}
         />
         <ColorButtons colors={COLORS} onColorPress={handleColorPress} />
       </Animated.View>
@@ -336,5 +337,5 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0F0F1B" },
-  gameArea: { flex: 1, justifyContent: "center", padding: 20 },
+  gameArea: { flex: 1, justifyContent: "flex-start", padding: 20 },
 });
