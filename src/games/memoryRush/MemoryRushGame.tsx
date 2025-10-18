@@ -253,15 +253,23 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   // Handle player color selection
   const handleColorPress = useCallback(
     (colorId: string) => {
-      console.log(
-        "handleColorPress called:",
-        colorId,
-        "waitingForInput:",
-        gameState.waitingForInput,
-        "gameOver:",
-        gameState.gameOver
-      );
-      if (!gameState.waitingForInput || gameState.gameOver) return;
+      // Blokiraj svaki dalji unos čim postoji bilo koji 'incorrect' u userProgress
+      if (
+        !gameState.waitingForInput ||
+        gameState.gameOver ||
+        gameState.userProgress.some((p) => p.status === "incorrect")
+      ) {
+        return;
+      }
+
+      // Spreči višestruke klikove na isti korak
+      const currentIndex = gameState.playerInput.length;
+      if (
+        gameState.userProgress[currentIndex] &&
+        gameState.userProgress[currentIndex].status !== "pending"
+      ) {
+        return;
+      }
 
       Vibration.vibrate(30);
 
@@ -302,7 +310,6 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
             }),
           ]).start();
 
-          console.log("????");
           setTimeout(async () => {
             // Update stats in Firebase and store
             const updateGameStats = useAuthStore.getState().updateGameStats;
@@ -370,6 +377,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
     [
       gameState.waitingForInput,
       gameState.gameOver,
+      gameState.userProgress,
       updateScore,
       generateSequence,
       displaySequence,
@@ -714,7 +722,8 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
             </View>
           </View>
 
-          {/* Sequence Display */}
+          <View style={{height: 130, alignItems: 'center', justifyContent: 'center'}}>
+            {/* Sequence Display */}
           {(!gameState.waitingForInput || gameState.showLevelFeedback) && (
             <SequenceDisplay
               sequence={gameState.sequence}
@@ -733,6 +742,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
             />
           )}
 
+          </View>
           {/* Status Messages */}
           <View style={styles.statusContainer}>
             {gameState.showLevelFeedback && !gameState.gameOver && (
