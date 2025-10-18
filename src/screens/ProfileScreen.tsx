@@ -56,7 +56,11 @@ export const ProfileScreen: React.FC = () => {
       setIsEditingUsername(false);
       Alert.alert('Success', 'Username updated successfully!');
     } catch (error: any) {
-      Alert.alert('Update Failed', error.message || 'Could not update username.');
+      if (error.message && error.message.includes('taken')) {
+        Alert.alert('Username Taken', 'This username is already taken. Please choose another.');
+      } else {
+        Alert.alert('Update Failed', error.message || 'Could not update username.');
+      }
       setNewUsername(user?.username || '');
     } finally {
       setIsUpdating(false);
@@ -97,6 +101,8 @@ export const ProfileScreen: React.FC = () => {
     const xpForNextLevel = currentLevel * 1000;
     return xpForNextLevel - totalXP;
   };
+
+  console.log("user.createdAt", user.createdAt)
 
   if (!fontsLoaded) {
     return (
@@ -166,13 +172,12 @@ export const ProfileScreen: React.FC = () => {
           ) : (
             <View style={styles.usernameContainer}>
               <Text style={styles.username}>{user.username}</Text>
-              {/* <TouchableOpacity
+              <TouchableOpacity
                 style={styles.editButton}
                 onPress={() => setIsEditingUsername(true)}
               >
-                <Ionicons name="pencil" size={16} color="#8E2DE2" />
-                <Text style={styles.editButtonText}>Edit</Text>
-              </TouchableOpacity> */}
+                <Ionicons name="pencil" size={18} color="#8E2DE2" />
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -253,15 +258,20 @@ export const ProfileScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Info</Text>
           <View style={styles.accountInfo}>
-            <Text style={styles.accountInfoText}>
-              Created: {new Date(user.createdAt).toLocaleDateString()}
-            </Text>
+              <Text style={styles.accountInfoText}>
+                Created: {user.createdAt && typeof user.createdAt === 'object' && 'seconds' in user.createdAt
+                  ? new Date(user.createdAt.seconds * 1000).toLocaleDateString()
+                  : user.createdAt instanceof Date
+                    ? user.createdAt.toLocaleDateString()
+                    : typeof user.createdAt === 'string'
+                      ? new Date(user.createdAt).toLocaleDateString()
+                      : 'Unknown'}
+              </Text>
             <Text style={styles.accountInfoText}>
               User ID: {user.uid}
             </Text>
           </View>
         </View>
-
         {/* Actions */}
         <View style={styles.section}>
           {/* <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>

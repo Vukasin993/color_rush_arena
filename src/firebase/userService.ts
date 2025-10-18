@@ -1,7 +1,11 @@
-import { doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { 
+  doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp, 
+  collection, getDocs, query, where 
+} from 'firebase/firestore';
 import { getAuth, signInAnonymously, onAuthStateChanged, deleteUser } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { firestore } from './config';
+
 
 export interface UserProfile {
   uid: string;
@@ -276,10 +280,24 @@ class UserService {
       throw error;
     }
   }
-
+  
+  // Provera da li je username zauzet
+  async isUsernameTaken(username: string): Promise<boolean> {
+    const q = query(
+      collection(firestore, this.USERS_COLLECTION),
+      where('username', '==', username)
+    );
+    const querySnapshot = await getDocs(q);
+    return !querySnapshot.empty;
+  }
   // Update username
   async updateUsername(uid: string, newUsername: string): Promise<void> {
     try {
+      // Provera unikatnosti
+      const taken = await this.isUsernameTaken(newUsername);
+      if (taken) {
+        throw new Error('Username is already taken.');
+      }
       await this.updateUserProfile(uid, { username: newUsername });
       console.log('✅ Username updated to:', newUsername);
     } catch (error) {
