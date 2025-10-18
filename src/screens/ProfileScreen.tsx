@@ -33,6 +33,25 @@ export const ProfileScreen: React.FC = () => {
     Orbitron_700Bold,
   });
 
+  // Modal state for feedback
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalIcon, setModalIcon] = useState<string>('help');
+  const [modalColor, setModalColor] = useState<string>('#00FFC6');
+
+  const showModal = (title: string, message: string, icon: 'success' | 'error' | 'warning', color: string = '#00FFC6') => {
+  let iconName: keyof typeof Ionicons.glyphMap = 'help';
+  if (icon === 'success') iconName = 'checkmark-circle';
+  else if (icon === 'error') iconName = 'close-circle';
+  else if (icon === 'warning') iconName = 'warning';
+  setModalTitle(title);
+  setModalMessage(message);
+  setModalIcon(iconName);
+  setModalColor(color);
+  setModalVisible(true);
+  };
+
   const handleUpdateUsername = async () => {
     if (!newUsername.trim() || newUsername.trim() === user?.username) {
       setIsEditingUsername(false);
@@ -41,12 +60,12 @@ export const ProfileScreen: React.FC = () => {
     }
 
     if (newUsername.length < 3) {
-      Alert.alert('Username Too Short', 'Username must be at least 3 characters long.');
+      showModal('Username Too Short', 'Username must be at least 3 characters long.', 'warning', '#FFB300');
       return;
     }
 
     if (newUsername.length > 20) {
-      Alert.alert('Username Too Long', 'Username must be less than 20 characters long.');
+      showModal('Username Too Long', 'Username must be less than 20 characters long.', 'warning', '#FFB300');
       return;
     }
 
@@ -54,12 +73,12 @@ export const ProfileScreen: React.FC = () => {
       setIsUpdating(true);
       await updateUsername(newUsername.trim());
       setIsEditingUsername(false);
-      Alert.alert('Success', 'Username updated successfully!');
+      showModal('Success', 'Username updated successfully!', 'success', '#00FFC6');
     } catch (error: any) {
       if (error.message && error.message.includes('taken')) {
-        Alert.alert('Username Taken', 'This username is already taken. Please choose another.');
+        showModal('Username Taken', 'This username is already taken. Please choose another.', 'error', '#FF3B30');
       } else {
-        Alert.alert('Update Failed', error.message || 'Could not update username.');
+        showModal('Update Failed', error.message || 'Could not update username.', 'error', '#FF3B30');
       }
       setNewUsername(user?.username || '');
     } finally {
@@ -123,7 +142,16 @@ export const ProfileScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
-      
+      {/* Modal for username feedback */}
+      <CustomModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        title={modalTitle}
+        message={modalMessage}
+  icon={modalIcon as keyof typeof Ionicons.glyphMap}
+        iconColor={modalColor}
+        buttons={[{ text: 'OK', onPress: () => setModalVisible(false), style: 'primary' }]}
+      />
       <ScrollView style={styles.scrollView}>
         {/* Header */}
         <View style={styles.header}>
