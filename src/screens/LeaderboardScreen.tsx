@@ -1,4 +1,34 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import Avatar1 from '@/assets/svg/1.svg';
+import Avatar2 from '@/assets/svg/2.svg';
+import Avatar3 from '@/assets/svg/3.svg';
+import Avatar4 from '@/assets/svg/4.svg';
+import Avatar5 from '@/assets/svg/5.svg';
+import Avatar6 from '@/assets/svg/6.svg';
+import Avatar7 from '@/assets/svg/7.svg';
+import Avatar8 from '@/assets/svg/8.svg';
+import Avatar9 from '@/assets/svg/9.svg';
+import Avatar10 from '@/assets/svg/10.svg';
+import Avatar11 from '@/assets/svg/11.svg';
+import Avatar12 from '@/assets/svg/12.svg';
+import Avatar13 from '@/assets/svg/13.svg';
+import Avatar14 from '@/assets/svg/14.svg';
+import Avatar15 from '@/assets/svg/15.svg';
+import Avatar16 from '@/assets/svg/16.svg';
+import Avatar17 from '@/assets/svg/17.svg';
+import Avatar18 from '@/assets/svg/18.svg';
+// eslint-disable-next-line import/no-unresolved
+import Avatar19 from '@/assets/svg/19.svg';
+import Avatar20 from '@/assets/svg/20.svg';
+import Avatar21 from '@/assets/svg/21.svg';
+import Avatar22 from '@/assets/svg/22.svg';
+import Avatar23 from '@/assets/svg/23.svg';
+import Avatar24 from '@/assets/svg/24.svg';
+import Avatar25 from '@/assets/svg/25.svg';
+import Avatar26 from '@/assets/svg/26.svg';
+import Avatar27 from '@/assets/svg/27.svg';
+import Avatar28 from '@/assets/svg/28.svg';
+import Avatar29 from '@/assets/svg/29.svg';
 import {
   View,
   Text,
@@ -22,6 +52,57 @@ import { leaderboardService, LeaderboardEntry } from '../firebase/leaderboard';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 
+
+const avatarKeys = [
+  '1.svg', '2.svg', '3.svg', '4.svg', '5.svg', '6.svg', '7.svg', '8.svg', '9.svg',
+  '10.svg', '11.svg', '12.svg', '13.svg', '14.svg', '15.svg', '16.svg', '17.svg', '18.svg',
+  '19.svg', '20.svg', '21.svg', '22.svg', '23.svg', '24.svg', '25.svg', '26.svg', '27.svg', '28.svg', '29.svg'
+] as const;
+
+type AvatarKey = typeof avatarKeys[number];
+
+const avatarMap: Record<AvatarKey, React.FC<React.SVGProps<SVGSVGElement>>> = {
+  '1.svg': Avatar1,
+  '2.svg': Avatar2,
+  '3.svg': Avatar3,
+  '4.svg': Avatar4,
+  '5.svg': Avatar5,
+  '6.svg': Avatar6,
+  '7.svg': Avatar7,
+  '8.svg': Avatar8,
+  '9.svg': Avatar9,
+  '10.svg': Avatar10,
+  '11.svg': Avatar11,
+  '12.svg': Avatar12,
+  '13.svg': Avatar13,
+  '14.svg': Avatar14,
+  '15.svg': Avatar15,
+  '16.svg': Avatar16,
+  '17.svg': Avatar17,
+  '18.svg': Avatar18,
+  '19.svg': Avatar19,
+  '20.svg': Avatar20,
+  '21.svg': Avatar21,
+  '22.svg': Avatar22,
+  '23.svg': Avatar23,
+  '24.svg': Avatar24,
+  '25.svg': Avatar25,
+  '26.svg': Avatar26,
+  '27.svg': Avatar27,
+  '28.svg': Avatar28,
+  '29.svg': Avatar29
+};
+
+interface UserAvatarProps {
+  avatar?: AvatarKey;
+  size?: number;
+}
+
+const UserAvatar: React.FC<UserAvatarProps> = ({ avatar = '1.svg', size = 32 }) => {
+  const SvgIcon = avatarMap[avatar] || Avatar1;
+  return <SvgIcon width={size} height={size} fill="#fff" />;
+};
+
 type LeaderboardScreenProps = NativeStackScreenProps<RootStackParamList, 'LeaderboardScreen'>;
 
 interface ScoreEntry {
@@ -34,6 +115,7 @@ interface ScoreEntry {
   userId: string;
   username?: string;
   highestLevel?: number;
+  avatar?: string;
 }
 
 export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation, route }) => {
@@ -97,6 +179,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
           level: `${selectedLevel === 'easy' ? '🟢' : selectedLevel === 'medium' ? '🟡' : '🔴'} ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)}`,
           userId: player.uid,
           username: player.username,
+          avatar: player.avatar,
         }));
       } else {
         // Memory Rush: best score + highest level
@@ -118,6 +201,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
           userId: player.uid,
           username: player.username,
           highestLevel: player[gameStats].highestLevel || 1,
+          avatar: player.avatar,
         }));
       }
     }
@@ -303,7 +387,14 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
                     <Text style={styles.rankNumber}>#{index + 1}</Text>
                   </View>
                   <View style={styles.leaderboardMainInfo}>
-                    <Text style={styles.leaderboardUsername}>{score.username || 'Player'}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      {score.avatar && avatarKeys.includes(score.avatar as AvatarKey) ? (
+                        <UserAvatar avatar={score.avatar as AvatarKey} size={28} />
+                      ) : (
+                        <UserAvatar avatar="1.svg" size={28} />
+                      )}
+                      <Text style={styles.leaderboardUsername}>{score.username || 'Player'}</Text>
+                    </View>
                     <Text style={styles.leaderboardScore}>{score.score.toLocaleString()} pts</Text>
                     {selectedGame === 'memoryRush' && (
                       <Text style={styles.leaderboardScore}>

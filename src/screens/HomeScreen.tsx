@@ -17,6 +17,60 @@ import {
   Orbitron_900Black,
 } from '@expo-google-fonts/orbitron';
 import { useAuth } from '../store/useAuthStore';
+import Avatar1 from '../../assets/svg/1.svg';
+import Avatar2 from '../../assets/svg/2.svg';
+import Avatar3 from '../../assets/svg/3.svg';
+import Avatar4 from '../../assets/svg/4.svg';
+import Avatar5 from '../../assets/svg/5.svg';
+import Avatar6 from '../../assets/svg/6.svg';
+import Avatar7 from '../../assets/svg/7.svg';
+import Avatar8 from '../../assets/svg/8.svg';
+import Avatar9 from '../../assets/svg/9.svg';
+import Avatar10 from '../../assets/svg/10.svg';
+import Avatar11 from '../../assets/svg/11.svg';
+import Avatar12 from '../../assets/svg/12.svg';
+import Avatar13 from '../../assets/svg/13.svg';
+import Avatar14 from '../../assets/svg/14.svg';
+import Avatar15 from '../../assets/svg/15.svg';
+import Avatar16 from '../../assets/svg/16.svg';
+import Avatar17 from '../../assets/svg/17.svg';
+import Avatar18 from '../../assets/svg/18.svg';
+import Avatar19 from '../../assets/svg/19.svg';
+import Avatar20 from '../../assets/svg/20.svg';
+import Avatar21 from '../../assets/svg/21.svg';
+
+const avatarMap = {
+  '1.svg': Avatar1,
+  '2.svg': Avatar2,
+  '3.svg': Avatar3,
+  '4.svg': Avatar4,
+  '5.svg': Avatar5,
+  '6.svg': Avatar6,
+  '7.svg': Avatar7,
+  '8.svg': Avatar8,
+  '9.svg': Avatar9,
+  '10.svg': Avatar10,
+  '11.svg': Avatar11,
+  '12.svg': Avatar12,
+  '13.svg': Avatar13,
+  '14.svg': Avatar14,
+  '15.svg': Avatar15,
+  '16.svg': Avatar16,
+  '17.svg': Avatar17,
+  '18.svg': Avatar18,
+  '19.svg': Avatar19,
+  '20.svg': Avatar20,
+  '21.svg': Avatar21,
+};
+
+interface UserAvatarProps {
+  avatar?: string;
+  size?: number;
+}
+const UserAvatar: React.FC<UserAvatarProps> = ({ avatar = '1.svg', size = 32 }) => {
+  const SvgIcon = avatarMap[avatar as keyof typeof avatarMap] || Avatar1;
+  return <SvgIcon width={size} height={size} fill="#fff" />;
+};
 
 interface GameCardProps {
   title: string;
@@ -117,7 +171,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <Text style={styles.mainTitle}>COLOR RUSH</Text>
           <Text style={styles.subtitle}>ARENA</Text>
           <View style={styles.userInfo}>
-            <Ionicons name="person-circle" size={20} color="#8E2DE2" />
+            <UserAvatar avatar={user?.avatar || '1.svg'} size={28} />
             <Text style={styles.userText}>
               Player: {user?.username || 'Guest'}
             </Text>

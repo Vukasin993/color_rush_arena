@@ -91,9 +91,12 @@ class UserService {
 
   // Create default user profile
   private createDefaultProfile(uid: string, username: string): UserProfile {
+    // Dodeli random avatar od 1 do 21
+    const avatarNumber = Math.floor(Math.random() * 29) + 1;
     return {
       uid,
       username,
+      avatar: `${avatarNumber}.svg`,
       createdAt: new Date(),
       lastLoginAt: new Date(),
       totalGames: 0,
@@ -280,7 +283,7 @@ class UserService {
       throw error;
     }
   }
-  
+
   // Provera da li je username zauzet
   async isUsernameTaken(username: string): Promise<boolean> {
     const q = query(
@@ -343,7 +346,7 @@ class UserService {
       }
       
       // Update game stats
-      let updatedGameStats = {
+      let updatedGameStats: any = {
         ...gameStats,
         totalGames: gameStats.totalGames + 1,
         bestScore: Math.max(gameStats.bestScore, score),
@@ -355,7 +358,10 @@ class UserService {
       };
       // Dodaj highestLevel za memoryRush
       if (gameType === 'memoryRush' && typeof highestLevel === 'number') {
-        updatedGameStats.highestLevel = Math.max(gameStats.highestLevel || 1, highestLevel);
+        updatedGameStats.highestLevel = Math.max(
+          (gameStats as UserProfile['memoryRushStats']).highestLevel || 1,
+          highestLevel
+        );
       }
 
       console.log('🔄 Updated game stats:', JSON.stringify(updatedGameStats, null, 2));
