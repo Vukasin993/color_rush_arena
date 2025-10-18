@@ -15,6 +15,7 @@ interface GameStats {
     extreme?: boolean;
     'extra-hard'?: boolean;
   };
+  highestLevel?: number;
 }
 
 interface GameResult {
@@ -71,6 +72,7 @@ const initialStats: GameStats = {
     medium: false,
     hard: false,
   },
+  highestLevel: 1,
 };
 
 // XP requirements for level unlocks
@@ -113,7 +115,7 @@ export const useGameStore = create<GameStore>()(
         const gameType = state.currentGame.type;
         const level = state.currentGame.level;
         
-        if (gameType && (gameType === 'colorMatch' || gameType === 'reactionTap' || gameType === 'memoryRush')) {
+        if (gameType && (gameType === 'colorMatch' || gameType === 'memoryRush')) {
           // Calculate XP (score * 10 + bonus for high scores)
           const xpEarned = finalScore * 10 + (finalScore > 20 ? 100 : finalScore > 50 ? 200 : 0);
           
@@ -191,14 +193,31 @@ export const useGameStore = create<GameStore>()(
             newUnlockedLevels.hard = true;
           }
 
-          const updatedStats: GameStats = {
-            totalGames: newTotalGames,
-            bestScore: newBestScore,
-            totalXP: newTotalXP,
-            averageScore: Math.round(newAverageScore * 10) / 10,
-            gameHistory: newHistory,
-            unlockedLevels: newUnlockedLevels,
-          };
+          // Dodaj highestLevel za memoryRush
+          let updatedStats: GameStats;
+          if (gameType === 'memoryRush') {
+            const newHighestLevel = result.level && typeof result.level === 'number'
+              ? Math.max(currentStats.highestLevel || 1, result.level)
+              : currentStats.highestLevel || 1;
+            updatedStats = {
+              totalGames: newTotalGames,
+              bestScore: newBestScore,
+              totalXP: newTotalXP,
+              averageScore: Math.round(newAverageScore * 10) / 10,
+              gameHistory: newHistory,
+              unlockedLevels: newUnlockedLevels,
+              highestLevel: newHighestLevel,
+            };
+          } else {
+            updatedStats = {
+              totalGames: newTotalGames,
+              bestScore: newBestScore,
+              totalXP: newTotalXP,
+              averageScore: Math.round(newAverageScore * 10) / 10,
+              gameHistory: newHistory,
+              unlockedLevels: newUnlockedLevels,
+            };
+          }
 
           const statsProp = gameType === 'colorMatch' 
             ? 'colorMatchStats' 
@@ -364,7 +383,10 @@ export const useGameStore = create<GameStore>()(
                 extreme: false,
                 'extra-hard': false,
               },
+              highestLevel: 1,
             };
+          } else if (persistedState.memoryRushStats && typeof persistedState.memoryRushStats.highestLevel !== 'number') {
+            persistedState.memoryRushStats.highestLevel = 1;
           }
         }
         return persistedState;

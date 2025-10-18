@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -25,7 +25,7 @@ import {
   Orbitron_700Bold,
 } from "@expo-google-fonts/orbitron";
 import { useGame } from "../store/useGameStore";
-import { useAuth } from "../store/useAuthStore";
+import { useAuth, useAuthStore } from "../store/useAuthStore";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../types/navigation";
 
@@ -38,15 +38,21 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   navigation,
   route,
 }) => {
-  
-  const { gameType, score, xpEarned, level } = route.params;
-  const { colorMatchStats, reactionTapStats, resetCurrentGame } = useGame();
-  const { user, updateGameStats } = useAuth();
+  const { gameType, score, xpEarned, level, highestLevel } = route.params;
+  const { colorMatchStats, memoryRushStats, resetCurrentGame } = useGame();
+  const { user, syncUserData } = useAuth();
+  // Use updateGameStats directly from Zustand store to avoid undefined errors
+  const updateGameStats = useAuthStore.getState().updateGameStats;
+
+  // Only update score once per screen mount
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
-  const initializedRef = useRef(false);
 
   const gameStats =
-    gameType === "colorMatch" ? colorMatchStats : reactionTapStats;
+    gameType === "colorMatch"
+      ? colorMatchStats
+      : gameType === "memoryRush"
+      ? memoryRushStats
+      : undefined;
 
   // Fallback stats if data is missing
   const safeGameStats = gameStats || {
@@ -57,6 +63,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     easyCompleted: 0,
     mediumCompleted: 0,
     hardCompleted: 0,
+    extremeCompleted: 0,
+    extraHardCompleted: 0,
   };
 
   // Animation values
@@ -71,95 +79,83 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     Orbitron_700Bold,
   });
 
-  // Submit score to Firebase and update user stats
-  const submitScoreToFirebase = React.useCallback(async () => {
-    if (scoreSubmitted || score <= 0) {
-      console.log('🚫 Skipping score submission:', { scoreSubmitted, score });
-      return;
-    }
-
-    // Immediately mark as submitted to prevent UI hanging
+  // Submit score to Firebase and update user stats only once per mount
+  useEffect(() => {
+    if (scoreSubmitted || score <= 0) return;
     setScoreSubmitted(true);
-
-    try {
-      // Update user stats in the new system - with timeout protection
-      if (user && (gameType === 'colorMatch' || gameType === 'reactionTap') && level) {
-        try {
-          // Add timeout protection for stats update
-          const statsPromise = updateGameStats(gameType, level, score, xpEarned);
+    (async () => {
+      try {
+        const allowedLevels = ["easy", "medium", "hard", "extreme", "extra-hard"] as const;
+        const submitLevel = gameType === "memoryRush"
+          ? "easy"
+          : allowedLevels.includes(level as any)
+            ? (level as (typeof allowedLevels)[number])
+            : "easy";
+        if (
+          user &&
+          (gameType === "colorMatch" || gameType === "memoryRush") &&
+          submitLevel
+        ) {
+          let statsPromise;
+          if (gameType === "memoryRush") {
+            statsPromise = updateGameStats(gameType, submitLevel, score, xpEarned, highestLevel);
+          } else {
+            statsPromise = updateGameStats(gameType, submitLevel, score, xpEarned);
+          }
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Stats update timeout')), 5000);
+            setTimeout(() => reject(new Error("Stats update timeout")), 5000);
           });
-          
           await Promise.race([statsPromise, timeoutPromise]);
-        } catch (statsError) {
-          console.error('❌ Failed to update user stats:', statsError);
-          // Continue anyway - don't let stats error break the screen
-          // Mark as submitted so we don't retry
-          setScoreSubmitted(true);
+          if (typeof user.uid === "string" && user.uid.length > 0) {
+            await syncUserData();
+          }
         }
-      } else {
-        console.log('⚠️ Skipping user stats update:', { 
-          hasUser: !!user, 
-          gameType, 
-          level, 
-          validGameType: gameType === 'colorMatch' || gameType === 'reactionTap' 
-        });
+      } catch (error) {
+        console.error("❌ Failed to submit score:", error);
+        if (error instanceof Error && !error.message.includes("auth")) {
+          Alert.alert(
+            "Score Submission Failed",
+            "Could not save your score to the leaderboard. Check your internet connection.",
+            [{ text: "OK" }]
+          );
+        }
       }
-    } catch (error) {
-      console.error("❌ Failed to submit score:", error);
-      console.error("❌ Error details:", JSON.stringify(error, null, 2));
-      
-      // Don't show alert if it's a Firebase Auth error - continue anyway
-      if (error instanceof Error && !error.message.includes('auth')) {
-        Alert.alert(
-          "Score Submission Failed",
-          "Could not save your score to the leaderboard. Check your internet connection.",
-          [{ text: "OK" }]
-        );
-      }
-    }
-  }, [scoreSubmitted, score, gameType, level, xpEarned, user, updateGameStats]);
+    })();
+  }, [scoreSubmitted, score, gameType, level, xpEarned, user, updateGameStats, syncUserData, highestLevel]);
 
-useEffect(() => {
-  resetCurrentGame();
+  useEffect(() => {
+    resetCurrentGame();
 
-  // Animacije neka se uvek pokrenu kad se ekran otvori
-  fadeAnimation.value = withTiming(1, { duration: 800 });
-  slideAnimation.value = withTiming(0, { duration: 800 });
-  scaleAnimation.value = withDelay(
-    300,
-    withSequence(
-      withTiming(1.2, { duration: 300 }),
-      withTiming(1, { duration: 200 })
-    )
-  );
-  xpAnimation.value = withDelay(800, withTiming(1, { duration: 1000 }));
-  glowAnimation.value = withTiming(1, { duration: 1500 });
-
-  setTimeout(() => {
-    submitScoreToFirebase().catch((error) =>
-      console.error('❌ Score submission failed, but UI continues:', error)
+    // Animacije neka se uvek pokrenu kad se ekran otvori
+    fadeAnimation.value = withTiming(1, { duration: 800 });
+    slideAnimation.value = withTiming(0, { duration: 800 });
+    scaleAnimation.value = withDelay(
+      300,
+      withSequence(
+        withTiming(1.2, { duration: 300 }),
+        withTiming(1, { duration: 200 })
+      )
     );
-  }, 100);
+    xpAnimation.value = withDelay(800, withTiming(1, { duration: 1000 }));
+    glowAnimation.value = withTiming(1, { duration: 1500 });
 
-  return () => {
-    fadeAnimation.value = 0;
-    slideAnimation.value = 0;
-    scaleAnimation.value = 0;
-    xpAnimation.value = 0;
-    glowAnimation.value = 0;
-  };
-}, [
-  fadeAnimation,
-  slideAnimation,
-  scaleAnimation,
-  xpAnimation,
-  glowAnimation,
-  resetCurrentGame,
-  submitScoreToFirebase,
-]);
+    // Animations only, score update handled above
 
+    return () => {
+      fadeAnimation.value = 0;
+      slideAnimation.value = 0;
+      scaleAnimation.value = 0;
+      xpAnimation.value = 0;
+      glowAnimation.value = 0;
+    };
+  }, [
+    fadeAnimation,
+    slideAnimation,
+    scaleAnimation,
+    xpAnimation,
+    glowAnimation,
+    resetCurrentGame,
+  ]);
 
   const getGameInfo = () => {
     switch (gameType) {
@@ -169,11 +165,11 @@ useEffect(() => {
           emoji: "🎨",
           color: ["#FF6B6B", "#FF3B30"] as [string, string],
         };
-      case "reactionTap":
+      case "memoryRush":
         return {
-          title: "Reaction Tap",
-          emoji: "⚡",
-          color: ["#FFD60A", "#FFB800"] as [string, string],
+          title: "Memory Rush",
+          emoji: "🧠",
+          color: ["#00FFC6", "#00D4AA"] as [string, string],
         };
       case "colorSnake":
         return {
@@ -227,7 +223,7 @@ useEffect(() => {
   }));
 
   if (!fontsLoaded) {
-    console.log('⏳ Fonts not loaded yet...');
+    console.log("⏳ Fonts not loaded yet...");
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Loading...</Text>
@@ -237,7 +233,7 @@ useEffect(() => {
 
   // Safety check for route params
   if (!route?.params) {
-    console.error('❌ GameOverScreen: Missing route params');
+    console.error("❌ GameOverScreen: Missing route params");
     return (
       <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
         <View style={styles.loadingContainer}>
@@ -250,7 +246,7 @@ useEffect(() => {
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
-      <ScrollView contentContainerStyle={{ flexGrow: 1,  }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <Animated.View style={[styles.content, fadeStyle]}>
           {/* HEADER */}
           <Animated.View style={[styles.header, slideStyle]}>
@@ -260,7 +256,7 @@ useEffect(() => {
             </Text>
           </Animated.View>
 
-          {/* SCORE */}
+          {/* SCORE & LEVEL for Memory Rush */}
           <Animated.View style={[styles.scoreSection, scaleStyle]}>
             <LinearGradient
               colors={gameInfo.color}
@@ -270,6 +266,14 @@ useEffect(() => {
               <Animated.Text style={[styles.scoreValue, glowStyle]}>
                 {score}
               </Animated.Text>
+              {gameType === "memoryRush" && (
+                <Text style={styles.scoreLabel}>Level reached</Text>
+              )}
+              {gameType === "memoryRush" && (
+                <Animated.Text style={[styles.scoreValue, glowStyle]}>
+                  {highestLevel || level}
+                </Animated.Text>
+              )}
               <Text style={styles.scoreMessage}>{getScoreMessage()}</Text>
 
               {isNewBest && (
@@ -304,7 +308,9 @@ useEffect(() => {
                 <Text style={styles.statLabel}>Best Score</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{safeGameStats.averageScore}</Text>
+                <Text style={styles.statValue}>
+                  {safeGameStats.averageScore}
+                </Text>
                 <Text style={styles.statLabel}>Average</Text>
               </View>
               <View style={styles.statItem}>
@@ -319,6 +325,7 @@ useEffect(() => {
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={() => {
+                // No updateStats call here, score already updated on mount
                 navigation.reset({
                   index: 1,
                   routes: [
@@ -327,7 +334,9 @@ useEffect(() => {
                       name:
                         gameType === "colorMatch"
                           ? "ColorMatchGame"
-                          : "ReactionGame",
+                          : gameType === "memoryRush"
+                          ? "MemoryRushGame"
+                          : "MemoryRushGame",
                       params: { level: level || "easy", autoStart: true },
                     },
                   ],
@@ -368,7 +377,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#0F0F1B",
-    
   },
   loadingContainer: {
     flex: 1,

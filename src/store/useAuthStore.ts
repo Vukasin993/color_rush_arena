@@ -15,10 +15,11 @@ interface AuthState {
   deleteAccount: () => Promise<void>;
   updateUsername: (newUsername: string) => Promise<void>;
   updateGameStats: (
-    gameType: 'colorMatch' | 'reactionTap' | 'memoryRush',
+    gameType: 'colorMatch' | 'memoryRush',
     level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard',
     score: number,
-    xpEarned: number
+    xpEarned: number,
+    highestLevel?: number
   ) => Promise<void>;
   syncUserData: () => Promise<void>;
   checkAuthStatus: () => Promise<void>;
@@ -132,26 +133,60 @@ export const useAuthStore = create<AuthState>()(
       },
 
       updateGameStats: async (
-        gameType: 'colorMatch' | 'reactionTap' | 'memoryRush',
+        gameType: 'colorMatch' | 'memoryRush',
         level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard',
         score: number,
-        xpEarned: number
+        xpEarned: number,
+        highestLevel?: number
       ) => {
         try {
           const { user } = get();
           if (!user) throw new Error('No user found');
-          
-          // Update stats locally first to prevent re-renders
-          const gameStats = gameType === 'colorMatch' ? user.colorMatchStats : user.reactionTapStats;
+          // Pick correct stats object
+          let gameStats;
+          if (gameType === 'colorMatch') gameStats = user.colorMatchStats;
+          else if (gameType === 'memoryRush') gameStats = user.memoryRushStats;
+          else throw new Error('Invalid gameType');
+
+          // Defensive: ensure all fields exist, per game type
+          let safeStats: any;
+          if (gameType === 'memoryRush') {
+            safeStats = {
+              ...gameStats,
+              totalGames: gameStats.totalGames || 0,
+              bestScore: gameStats.bestScore || 0,
+              averageScore: gameStats.averageScore || 0,
+              totalXP: gameStats.totalXP || 0,
+              easyCompleted: gameStats.easyCompleted || 0,
+              mediumCompleted: gameStats.mediumCompleted || 0,
+              hardCompleted: gameStats.hardCompleted || 0,
+              extremeCompleted: (gameStats as any).extremeCompleted || 0,
+              extraHardCompleted: (gameStats as any).extraHardCompleted || 0,
+              highestLevel: typeof highestLevel === 'number' ? Math.max(gameStats.highestLevel || 1, highestLevel) : (gameStats.highestLevel || 1),
+            };
+          } else {
+            safeStats = {
+              ...gameStats,
+              totalGames: gameStats.totalGames || 0,
+              bestScore: gameStats.bestScore || 0,
+              averageScore: gameStats.averageScore || 0,
+              totalXP: gameStats.totalXP || 0,
+              easyCompleted: gameStats.easyCompleted || 0,
+              mediumCompleted: gameStats.mediumCompleted || 0,
+              hardCompleted: gameStats.hardCompleted || 0,
+            };
+          }
+
+          // Update stats
           const updatedGameStats = {
-            ...gameStats,
-            totalGames: gameStats.totalGames + 1,
-            bestScore: Math.max(gameStats.bestScore, score),
+            ...safeStats,
+            totalGames: safeStats.totalGames + 1,
+            bestScore: Math.max(safeStats.bestScore, score),
             averageScore: Math.round(
-              (gameStats.averageScore * gameStats.totalGames + score) / (gameStats.totalGames + 1)
+              (safeStats.averageScore * safeStats.totalGames + score) / (safeStats.totalGames + 1)
             ),
-            totalXP: gameStats.totalXP + xpEarned,
-            [`${level}Completed`]: gameStats[`${level}Completed` as keyof typeof gameStats] + 1,
+            totalXP: safeStats.totalXP + xpEarned,
+            [`${level === 'extra-hard' ? 'extraHard' : level}Completed`]: safeStats[`${level === 'extra-hard' ? 'extraHard' : level}Completed`] + 1,
           };
 
           const updatedUser = {
@@ -162,12 +197,8 @@ export const useAuthStore = create<AuthState>()(
             level: Math.floor((user.totalXP + xpEarned) / 1000) + 1,
           };
 
-          // Update store immediately with calculated values - no AsyncStorage read needed
           set({ user: updatedUser });
-          
-          // Update Firebase in background
-          await userService.updateGameStats(user.uid, gameType, level, score, xpEarned);
-          
+          await userService.updateGameStats(user.uid, gameType, level, score, xpEarned, safeStats.highestLevel);
           console.log('✅ Game stats updated successfully (store updated immediately)');
         } catch (error: any) {
           const errorMessage = error.message || 'Failed to update game stats';

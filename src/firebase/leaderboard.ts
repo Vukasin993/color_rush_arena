@@ -23,7 +23,7 @@ export interface LeaderboardEntry {
     mediumCompleted: number;
     hardCompleted: number;
   };
-  reactionTapStats: {
+  memoryRushStats: {
     totalGames: number;
     bestScore: number;
     averageScore: number;
@@ -31,6 +31,9 @@ export interface LeaderboardEntry {
     easyCompleted: number;
     mediumCompleted: number;
     hardCompleted: number;
+    extremeCompleted: number;
+    extraHardCompleted: number;
+    highestLevel?: number;
   };
 }
 
@@ -79,7 +82,7 @@ class LeaderboardService {
             mediumCompleted: 0,
             hardCompleted: 0,
           },
-          reactionTapStats: data.reactionTapStats || {
+          memoryRushStats: data.memoryRushStats || {
             totalGames: 0,
             bestScore: 0,
             averageScore: 0,
@@ -87,6 +90,9 @@ class LeaderboardService {
             easyCompleted: 0,
             mediumCompleted: 0,
             hardCompleted: 0,
+            extremeCompleted: 0,
+            extraHardCompleted: 0,
+            highestLevel: 1,
           },
         });
       });
@@ -101,12 +107,11 @@ class LeaderboardService {
 
   // Get top players by best score for specific game
   async getTopPlayersByGameScore(
-    gameType: 'colorMatch' | 'reactionTap',
+    gameType: 'colorMatch' | 'memoryRush',
     limitCount: number = 50
   ): Promise<LeaderboardEntry[]> {
     try {
       const statsField = `${gameType}Stats.bestScore`;
-      
       const q = query(
         collection(firestore, this.USERS_COLLECTION),
         orderBy(statsField, 'desc'),
@@ -119,7 +124,6 @@ class LeaderboardService {
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         const gameStats = data[`${gameType}Stats`];
-        
         // Only include players who have played this game
         if (gameStats && gameStats.totalGames > 0) {
           players.push({
@@ -138,7 +142,7 @@ class LeaderboardService {
               mediumCompleted: 0,
               hardCompleted: 0,
             },
-            reactionTapStats: data.reactionTapStats || {
+            memoryRushStats: data.memoryRushStats || {
               totalGames: 0,
               bestScore: 0,
               averageScore: 0,
@@ -146,6 +150,8 @@ class LeaderboardService {
               easyCompleted: 0,
               mediumCompleted: 0,
               hardCompleted: 0,
+              extremeCompleted: 0,
+              extraHardCompleted: 0,
             },
           });
         }

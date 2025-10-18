@@ -25,6 +25,7 @@ import { ColorGrid } from "./components/ColorGrid";
 import { SequenceDisplay } from "./components/SequenceDisplay";
 import { ProgressFeedback } from "./components/ProgressFeedback";
 import { RoundFeedbackModal } from "./components/RoundFeedbackModal";
+import { useAuthStore } from "../../store/useAuthStore";
 
 type MemoryRushGameProps = NativeStackScreenProps<
   RootStackParamList,
@@ -140,9 +141,10 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   route,
 }) => {
   const { autoStart = false } = route.params || {};
-  const { startGame, updateScore } = useGame();
+  const { startGame, updateScore, endGame} = useGame();
 
   const [gameStarted, setGameStarted] = useState(false);
+
   const [gameState, setGameState] = useState<GameState>({
     sequence: [],
     playerInput: [],
@@ -158,13 +160,15 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
     currentInputIndex: 0,
     levelScore: 0,
     powerUps: {
-      repeatSequence: 3,
-      skipLevel: 3,
+      repeatSequence: 0,
+      skipLevel: 0,
       adsWatched: 0,
     },
     highestLevel: 1,
-    canWatchAdToContinue: true,
+    canWatchAdToContinue: false,
   });
+
+  // ...existing code...
 
   const shakeAnimation = useRef(new Animated.Value(0)).current;
   const sequenceTimeoutRef = useRef<number | null>(null);
@@ -299,7 +303,17 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
           ]).start();
 
           console.log("????");
-          setTimeout(() => {
+          setTimeout(async () => {
+            // Update stats in Firebase and store
+            const updateGameStats = useAuthStore.getState().updateGameStats;
+            const xpEarned = Math.round(gameState.score * 1.2);
+            await updateGameStats(
+              "memoryRush",
+              "easy",
+              gameState.score,
+              xpEarned,
+              gameState.highestLevel
+            );
             setGameState((p) => ({
               ...p,
               gameOver: true,
@@ -425,7 +439,6 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   // Restart game
   const handleRestart = useCallback(() => {
     const initialSequence = generateSequence(1);
-
     setGameState({
       sequence: initialSequence,
       playerInput: [],
@@ -448,11 +461,10 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
       highestLevel: 1,
       canWatchAdToContinue: true,
     });
-
     setTimeout(() => {
       displaySequence(initialSequence);
     }, 500);
-  }, [generateSequence, displaySequence]);
+  }, [generateSequence, displaySequence, gameState.score, gameState.highestLevel]);
 
   // Watch ad to continue
   const handleWatchAdToContinue = useCallback(() => {
@@ -811,9 +823,18 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.gameButton}
-                  onPress={() => navigation.goBack()}
+                  onPress={() => {
+                    endGame(gameState.score);
+                    navigation.replace("GameOverScreen", {
+                      gameType: "memoryRush",
+                      score: gameState.score,
+                      xpEarned: Math.round(gameState.score * 1.2),
+                      level: gameState.currentLevel,
+                      highestLevel: gameState.highestLevel,
+                    });
+                  }}
                 >
-                  <Text style={styles.gameButtonText}>Back to Menu</Text>
+                  <Text style={styles.gameButtonText}>Game Over</Text>
                 </TouchableOpacity>
               </View>
             </View>

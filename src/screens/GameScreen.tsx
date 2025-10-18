@@ -243,7 +243,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                 !isLevelUnlocked(gameType as any, 'hard') && styles.levelButtonLocked
               ]}
               activeOpacity={0.8}
-              // disabled={!isLevelUnlocked(gameType as any, 'hard')}
+              disabled={!isLevelUnlocked(gameType as any, 'hard')}
               onPress={() => {
                 if (gameType === 'colorMatch') {
                   navigation.navigate('ColorMatchGame', { level: 'hard' });

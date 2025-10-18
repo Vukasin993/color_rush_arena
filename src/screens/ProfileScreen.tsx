@@ -224,23 +224,27 @@ export const ProfileScreen: React.FC = () => {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚡ Reaction Tap Stats</Text>
+          <Text style={styles.sectionTitle}>🧠 Memory Rush Stats</Text>
           <View style={styles.gameStats}>
             <View style={styles.gameStatRow}>
               <Text style={styles.gameStatLabel}>Best Score:</Text>
-              <Text style={styles.gameStatValue}>{user.reactionTapStats.bestScore}</Text>
+              <Text style={styles.gameStatValue}>{user.memoryRushStats.bestScore}</Text>
+            </View>
+            <View style={styles.gameStatRow}>
+              <Text style={styles.gameStatLabel}>Highest Level:</Text>
+              <Text style={styles.gameStatValue}>{user.memoryRushStats.highestLevel || 1}</Text>
             </View>
             <View style={styles.gameStatRow}>
               <Text style={styles.gameStatLabel}>Average Score:</Text>
-              <Text style={styles.gameStatValue}>{user.reactionTapStats.averageScore}</Text>
+              <Text style={styles.gameStatValue}>{user.memoryRushStats.averageScore}</Text>
             </View>
             <View style={styles.gameStatRow}>
               <Text style={styles.gameStatLabel}>Games Played:</Text>
-              <Text style={styles.gameStatValue}>{user.reactionTapStats.totalGames}</Text>
+              <Text style={styles.gameStatValue}>{user.memoryRushStats.totalGames}</Text>
             </View>
             <View style={styles.gameStatRow}>
               <Text style={styles.gameStatLabel}>Total XP:</Text>
-              <Text style={styles.gameStatValue}>{user.reactionTapStats.totalXP}</Text>
+              <Text style={styles.gameStatValue}>{user.memoryRushStats.totalXP}</Text>
             </View>
           </View>
         </View>

@@ -49,6 +49,7 @@ export interface UserProfile {
     hardCompleted: number;
     extremeCompleted: number;
     extraHardCompleted: number;
+    highestLevel?: number;
   };
   
   // Preferences
@@ -122,6 +123,7 @@ class UserService {
         hardCompleted: 0,
         extremeCompleted: 0,
         extraHardCompleted: 0,
+        highestLevel: 1,
       },
       preferences: {
         soundEnabled: true,
@@ -292,7 +294,8 @@ class UserService {
     gameType: 'colorMatch' | 'reactionTap' | 'memoryRush',
     level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard',
     score: number,
-    xpEarned: number
+    xpEarned: number,
+    highestLevel?: number
   ): Promise<void> {
     console.log('📊 Starting updateGameStats:', { uid, gameType, level, score, xpEarned });
     
@@ -322,7 +325,7 @@ class UserService {
       }
       
       // Update game stats
-      const updatedGameStats = {
+      let updatedGameStats = {
         ...gameStats,
         totalGames: gameStats.totalGames + 1,
         bestScore: Math.max(gameStats.bestScore, score),
@@ -332,6 +335,10 @@ class UserService {
         totalXP: gameStats.totalXP + xpEarned,
         [`${level === 'extra-hard' ? 'extraHard' : level}Completed`]: gameStats[`${level === 'extra-hard' ? 'extraHard' : level}Completed` as keyof typeof gameStats] + 1,
       };
+      // Dodaj highestLevel za memoryRush
+      if (gameType === 'memoryRush' && typeof highestLevel === 'number') {
+        updatedGameStats.highestLevel = Math.max(gameStats.highestLevel || 1, highestLevel);
+      }
 
       console.log('🔄 Updated game stats:', JSON.stringify(updatedGameStats, null, 2));
 

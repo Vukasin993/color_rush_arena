@@ -119,7 +119,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <View style={styles.userInfo}>
             <Ionicons name="person-circle" size={20} color="#8E2DE2" />
             <Text style={styles.userText}>
-              Player: {user?.uid?.slice(-6) || 'Guest'}
+              Player: {user?.username || 'Guest'}
             </Text>
           </View>
         </View>

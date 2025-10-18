@@ -4,7 +4,7 @@
     "slug": "memory-quest",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/cra.png",
+    "icon": "./assets/images/app-icon.png",
     "scheme": "colorrusharena",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,6 +13,7 @@
       "bundleIdentifier": "com.vukasin93.colorrusharena"
     },
     "android": {
+        "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/adaptive-icon.png",

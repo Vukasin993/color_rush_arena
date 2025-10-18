@@ -33,16 +33,17 @@ interface ScoreEntry {
   level: string;
   userId: string;
   username?: string;
+  highestLevel?: number;
 }
 
 export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation, route }) => {
   const { gameType } = route.params || {};
-  const { colorMatchStats, reactionTapStats } = useGame();
+  const { colorMatchStats, memoryRushStats } = useGame();
   const [firebaseScores, setFirebaseScores] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedGame, setSelectedGame] = useState<'colorMatch' | 'reactionTap'>(
-    (gameType === 'colorMatch' || gameType === 'reactionTap') ? gameType : 'colorMatch'
+  const [selectedGame, setSelectedGame] = useState<'colorMatch' | 'memoryRush'>(
+    gameType === 'memoryRush' ? 'memoryRush' : 'colorMatch'
   );
   const [selectedLevel, setSelectedLevel] = useState<'easy' | 'medium' | 'hard'>('easy');
 
@@ -54,20 +55,17 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
     } else {
       setLoading(true);
     }
-    
     try {
-      // Get top players by specific game score
       const scores = await leaderboardService.getTopPlayersByGameScore(selectedGame, 100);
       setFirebaseScores(scores);
     } catch (error) {
       console.error('Failed to fetch leaderboard:', error);
-      // Fall back to local scores if Firebase fails
       setFirebaseScores([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedGame, selectedLevel]);
+  }, [selectedGame]);
 
   useEffect(() => {
     fetchScores();
@@ -80,59 +78,82 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
   // Convert Firebase scores to display format - Best scores for selected level
   const getDisplayScores = (): ScoreEntry[] => {
     if (firebaseScores.length > 0) {
-      const gameStats = selectedGame === 'colorMatch' ? 'colorMatchStats' : 'reactionTapStats';
-      
-      // Best Score ranking - filter by selected level
-      const levelProperty = `${selectedLevel}Completed` as keyof typeof firebaseScores[0]['colorMatchStats'];
-      const bestScoreRanking = [...firebaseScores]
-        .filter(player => {
-          const stats = player[gameStats];
-          return stats && stats.totalGames > 0 && stats[levelProperty] > 0;
-        })
-        .sort((a, b) => b[gameStats].bestScore - a[gameStats].bestScore)
-        .slice(0, 100);
-      
-      // Create entries for the selected level
-      const allEntries: ScoreEntry[] = bestScoreRanking.map((player, index) => ({
-        id: `best_${selectedLevel}_${player.uid}_${index}`,
-        game: `${selectedGame === 'colorMatch' ? 'Color Match' : 'Reaction Tap'} - ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)} Level`,
-        score: player[gameStats].bestScore,
-        date: new Date().toISOString().split('T')[0],
-        emoji: selectedGame === 'colorMatch' ? '🎨' : '⚡',
-        level: `${selectedLevel === 'easy' ? '🟢' : selectedLevel === 'medium' ? '🟡' : '🔴'} ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)}`,
-        userId: player.uid,
-        username: player.username,
-      }));
-      
-      return allEntries;
+      if (selectedGame === 'colorMatch') {
+        const gameStats = 'colorMatchStats';
+        const levelProperty = `${selectedLevel}Completed` as keyof typeof firebaseScores[0]['colorMatchStats'];
+        const bestScoreRanking = [...firebaseScores]
+          .filter(player => {
+            const stats = player[gameStats];
+            return stats && stats.totalGames > 0 && stats[levelProperty] > 0 && stats.bestScore > 0;
+          })
+          .sort((a, b) => b[gameStats].bestScore - a[gameStats].bestScore)
+          .slice(0, 100);
+        return bestScoreRanking.map((player, index) => ({
+          id: `best_${selectedLevel}_${player.uid}_${index}`,
+          game: `Color Match - ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)} Level`,
+          score: player[gameStats].bestScore,
+          date: new Date().toISOString().split('T')[0],
+          emoji: '🎨',
+          level: `${selectedLevel === 'easy' ? '🟢' : selectedLevel === 'medium' ? '🟡' : '🔴'} ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)}`,
+          userId: player.uid,
+          username: player.username,
+        }));
+      } else {
+        // Memory Rush: best score + highest level
+        const gameStats = 'memoryRushStats';
+        const bestScoreRanking = [...firebaseScores]
+          .filter(player => {
+            const stats = player[gameStats];
+            return stats && stats.totalGames > 0 && stats.bestScore > 0;
+          })
+          .sort((a, b) => b[gameStats].bestScore - a[gameStats].bestScore)
+          .slice(0, 100);
+        return bestScoreRanking.map((player, index) => ({
+          id: `best_memoryRush_${player.uid}_${index}`,
+          game: 'Memory Rush',
+          score: player[gameStats].bestScore,
+          date: new Date().toISOString().split('T')[0],
+          emoji: '🧠',
+          level: '',
+          userId: player.uid,
+          username: player.username,
+          highestLevel: player[gameStats].highestLevel || 1,
+        }));
+      }
     }
-    
     // Fall back to local scores
-    const allScores: ScoreEntry[] = [
-      ...colorMatchStats.gameHistory.map(game => ({
-        id: game.id,
-        game: 'Color Match',
-        score: game.score,
-        date: game.date.split('T')[0],
-        emoji: '🎨',
-        level: game.level,
-        userId: 'local',
-      })),
-      ...reactionTapStats.gameHistory.map(game => ({
-        id: game.id,
-        game: 'Reaction Tap', 
-        score: game.score,
-        date: game.date.split('T')[0],
-        emoji: '⚡',
-        level: game.level,
-        userId: 'local',
-      })),
-    ].sort((a, b) => b.score - a.score);
-
-    return allScores.length > 0 ? allScores : [
-      { id: '1', game: 'Color Match', score: 0, date: '2024-01-15', emoji: '🎨', level: 'easy', userId: 'demo' },
-      { id: '2', game: 'Reaction Tap', score: 0, date: '2024-01-14', emoji: '⚡', level: 'easy', userId: 'demo' },
-    ];
+    if (selectedGame === 'colorMatch') {
+      const allScores: ScoreEntry[] = [
+        ...colorMatchStats.gameHistory.map(game => ({
+          id: game.id,
+          game: 'Color Match',
+          score: game.score,
+          date: game.date.split('T')[0],
+          emoji: '🎨',
+          level: game.level,
+          userId: 'local',
+        })),
+      ].sort((a, b) => b.score - a.score);
+      return allScores.length > 0 ? allScores : [
+        { id: '1', game: 'Color Match', score: 0, date: '2024-01-15', emoji: '🎨', level: 'easy', userId: 'demo' },
+      ];
+    } else {
+      const allScores: ScoreEntry[] = [
+        ...memoryRushStats.gameHistory.map(game => ({
+          id: game.id,
+          game: 'Memory Rush',
+          score: game.score,
+          date: game.date.split('T')[0],
+          emoji: '🧠',
+          level: '',
+          userId: 'local',
+          highestLevel: memoryRushStats.highestLevel || 1,
+        })),
+      ].sort((a, b) => b.score - a.score);
+      return allScores.length > 0 ? allScores : [
+        { id: '1', game: 'Memory Rush', score: 0, date: '2024-01-15', emoji: '🧠', level: '', userId: 'demo', highestLevel: 1 },
+      ];
+    }
   };
   
   const displayScores = getDisplayScores();
@@ -201,7 +222,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
         <View style={styles.filterTabs}>
           {[
             { key: 'colorMatch', label: 'Color Match', emoji: '🎨' },
-            { key: 'reactionTap', label: 'Reaction Tap', emoji: '⚡' },
+            { key: 'memoryRush', label: 'Memory Rush', emoji: '🧠' },
           ].map((game) => (
             <TouchableOpacity
               key={game.key}
@@ -224,37 +245,6 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
         </View>
       </View>
 
-      {/* Level Selector */}
-      <View style={styles.levelContainer}>
-        <View style={styles.levelTabs}>
-          {[
-            { key: 'easy', label: 'Easy', emoji: '🟢' },
-            { key: 'medium', label: 'Medium', emoji: '🟡' },
-            { key: 'hard', label: 'Hard', emoji: '🔴' },
-          ].map((level) => (
-            <TouchableOpacity
-              key={level.key}
-              style={[
-                styles.levelTab,
-                selectedLevel === level.key && styles.levelTabActive
-              ]}
-              onPress={() => setSelectedLevel(level.key as any)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.levelTabEmoji}>{level.emoji}</Text>
-              <Text style={[
-                styles.levelTabText,
-                selectedLevel === level.key && styles.levelTabTextActive
-              ]}>
-                {level.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-
-
       {/* Stats Cards - Compact */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
@@ -262,82 +252,76 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
             colors={['rgba(255, 184, 0, 0.2)', 'rgba(255, 159, 10, 0.1)']}
             style={styles.statCardGradient}
           >
-            <Text style={styles.statNumber}>{
-              selectedGame === 'colorMatch' ? colorMatchStats.bestScore : reactionTapStats.bestScore
-            }</Text>
+            <Text style={styles.statNumber}>
+              {selectedGame === 'colorMatch' ? colorMatchStats.bestScore : memoryRushStats.bestScore}
+            </Text>
             <Text style={styles.statLabel}>Best Score</Text>
           </LinearGradient>
         </View>
-        
-        <View style={styles.statCard}>
-          <LinearGradient
-            colors={['rgba(0, 255, 198, 0.2)', 'rgba(0, 212, 170, 0.1)']}
-            style={styles.statCardGradient}
-          >
-            <Text style={styles.statNumber}>{
-              Math.round(selectedGame === 'colorMatch' ? colorMatchStats.averageScore : reactionTapStats.averageScore)
-            }</Text>
-            <Text style={styles.statLabel}>Average</Text>
-          </LinearGradient>
-        </View>
-      </View>      {/* Leaderboard List */}
+        {selectedGame === 'colorMatch' && (
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={['rgba(0, 255, 198, 0.2)', 'rgba(0, 212, 170, 0.1)']}
+              style={styles.statCardGradient}
+            >
+              <Text style={styles.statNumber}>
+                {Math.round(colorMatchStats.averageScore)}
+              </Text>
+              <Text style={styles.statLabel}>Average</Text>
+            </LinearGradient>
+          </View>
+        )}
+      </View>
+
       <View style={styles.listContainer}>
         <Text style={styles.listTitle}>All Time Best</Text>
-        
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          {loading && !refreshing && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#8E2DE2" />
-              <Text style={styles.loadingText}>Loading leaderboard...</Text>
-            </View>
-          )}
-          {!loading && displayScores.map((score, index) => (
-            <View key={score.id} style={styles.scoreItem}>
-              <LinearGradient
-                colors={[
-                  `rgba(${index < 3 ? '255, 215, 0' : '142, 45, 226'}, 0.1)`,
-                  `rgba(${index < 3 ? '255, 184, 0' : '74, 0, 224'}, 0.05)`
-                ]}
-                style={styles.scoreItemGradient}
-              >
-                {/* Rank */}
-                <View style={styles.rankContainer}>
-                  <LinearGradient
-                    colors={getRankColor(index)}
-                    style={styles.rankBadge}
-                  >
-                    <Text style={styles.rankEmoji}>{getRankEmoji(index)}</Text>
-                  </LinearGradient>
-                  <Text style={styles.rankNumber}>#{index + 1}</Text>
-                </View>
-
-                {/* Player Info */}
-                <View style={styles.gameInfo}>
-                  <View style={styles.gameHeader}>
-                    <Text style={styles.gameEmoji}>{score.emoji}</Text>
-                    <Text style={styles.gameName}>{score.username || 'Player'}</Text>
+        <View style={{ flex: 1, minHeight: 0 }}>
+          <ScrollView
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={true}
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          >
+            {loading && !refreshing && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#8E2DE2" />
+                <Text style={styles.loadingText}>Loading leaderboard...</Text>
+              </View>
+            )}
+            {!loading && displayScores.length > 0 ? (
+              displayScores.map((score, index) => (
+                <View key={score.id} style={styles.scoreItemImproved}>
+                  <View style={styles.rankContainer}>
+                    <LinearGradient
+                      colors={getRankColor(index)}
+                      style={styles.rankBadge}
+                    >
+                      <Text style={styles.rankEmoji}>{getRankEmoji(index)}</Text>
+                    </LinearGradient>
+                    <Text style={styles.rankNumber}>#{index + 1}</Text>
                   </View>
-                  <Text style={styles.gameDate}>{score.level}</Text>
+                  <View style={styles.leaderboardMainInfo}>
+                    <Text style={styles.leaderboardUsername}>{score.username || 'Player'}</Text>
+                    <Text style={styles.leaderboardScore}>{score.score.toLocaleString()} pts</Text>
+                    {selectedGame === 'memoryRush' && (
+                      <Text style={styles.leaderboardScore}>
+                        Level: {score.highestLevel || 1}
+                      </Text>
+                    )}
+                  </View>
                 </View>
-
-                {/* Score */}
-                <View style={styles.scoreContainer}>
-                  <Text style={styles.scoreValue}>{score.score.toLocaleString()}</Text>
-                  <Text style={styles.scoreLabel}>pts</Text>
+              ))
+            ) : (
+              !loading && (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.loadingText}>No scores yet.</Text>
                 </View>
-              </LinearGradient>
-            </View>
-          ))}
-          
-
-        </ScrollView>
+              )
+            )}
+          </ScrollView>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -448,18 +432,35 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 30,
   },
-  scoreItem: {
-    marginBottom: 12,
-    borderRadius: 15,
-    overflow: 'hidden',
-  },
-  scoreItemGradient: {
-    padding: 15,
+  scoreItemImproved: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'flex-start',
+    backgroundColor: 'rgba(26,26,46,0.8)',
     borderRadius: 15,
+    marginBottom: 10,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(142, 45, 226, 0.15)',
+    minHeight: 64,
+  },
+  leaderboardMainInfo: {
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    marginLeft: 16,
+  },
+  leaderboardUsername: {
+    fontSize: 18,
+    fontFamily: 'Orbitron_700Bold',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  leaderboardScore: {
+    fontSize: 15,
+    fontFamily: 'Orbitron_400Regular',
+    color: '#00FFC6',
   },
   rankContainer: {
     alignItems: 'center',

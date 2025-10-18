@@ -8,9 +8,10 @@ export type RootStackParamList = {
   MemoryRushGame: { level?: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard'; autoStart?: boolean };
   GameOverScreen: {
     gameType: 'colorMatch' | 'reactionTap' | 'colorSnake' | 'memoryRush';
-    level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard';
+    level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard' | number;
     score: number;
     xpEarned: number;
+    highestLevel?: number;
   };
 };
 
