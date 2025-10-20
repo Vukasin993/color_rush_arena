@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -19,7 +20,7 @@ import {
   Orbitron_900Black,
 } from "@expo-google-fonts/orbitron";
 import { useGame } from "../../store/useGameStore";
-import { logGameStart, logGameEnd } from '../../firebase/analytics';
+import { logGameStart, logGameEnd } from "../../firebase/analytics";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
 import { ColorGrid } from "./components/ColorGrid";
@@ -141,8 +142,8 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   navigation,
   route,
 }) => {
-  const { autoStart = false } = route.params || {};
-  const { startGame, updateScore, endGame} = useGame();
+  const { autoStart = false, continueSaved = false } = route.params || {};
+  const { startGame, updateScore, endGame } = useGame();
 
   const [gameStarted, setGameStarted] = useState(false);
 
@@ -179,6 +180,28 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
     Orbitron_700Bold,
     Orbitron_900Black,
   });
+
+  const STORAGE_KEY = "@memory_rush_saved_game";
+  // Load saved game if requested
+  useEffect(() => {
+    if (continueSaved) {
+      (async () => {
+        const savedStr = await AsyncStorage.getItem(STORAGE_KEY);
+        console.log("*** SAVED STR: ***", savedStr);
+        if (savedStr) {
+          const saved = JSON.parse(savedStr);
+          setGameState(saved);
+          setGameStarted(true);
+        }
+      })();
+    }
+  }, [continueSaved]);
+
+  const handlePauseAndSave = useCallback(async () => {
+  console.log("*** GAME STATE *** ", gameState);
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+  navigation.navigate("MainTabs", { screen: "HomeScreen" });
+  }, [gameState, navigation]);
 
   // Generate sequence for current level
   const generateSequence = useCallback((level: number): string[] => {
@@ -387,8 +410,9 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   );
 
   // Start new game
-  const handleStartGame = useCallback(() => {
-  logGameStart('memoryRush');
+  const handleStartGame = useCallback(async () => {
+    logGameStart("memoryRush");
+    await AsyncStorage.removeItem(STORAGE_KEY);
     const initialSequence = generateSequence(1);
 
     setGameStarted(true);
@@ -448,7 +472,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
 
   // Restart game
   const handleRestart = useCallback(() => {
-  logGameStart('memoryRush');
+    logGameStart("memoryRush");
     const initialSequence = generateSequence(1);
     setGameState({
       sequence: initialSequence,
@@ -475,7 +499,12 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
     setTimeout(() => {
       displaySequence(initialSequence);
     }, 500);
-  }, [generateSequence, displaySequence, gameState.score, gameState.highestLevel]);
+  }, [
+    generateSequence,
+    displaySequence,
+    gameState.score,
+    gameState.highestLevel,
+  ]);
 
   // Watch ad to continue
   const handleWatchAdToContinue = useCallback(() => {
@@ -600,7 +629,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
               <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => {
-                  logGameEnd('memoryRush', gameState.score);
+                  logGameEnd("memoryRush", gameState.score);
                   navigation.goBack();
                 }}
                 activeOpacity={0.7}
@@ -728,26 +757,31 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
             </View>
           </View>
 
-          <View style={{height: 130, alignItems: 'center', justifyContent: 'center'}}>
+          <View
+            style={{
+              height: 130,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             {/* Sequence Display */}
-          {(!gameState.waitingForInput || gameState.showLevelFeedback) && (
-            <SequenceDisplay
-              sequence={gameState.sequence}
-              gameColors={currentColors}
-              showingSequence={gameState.showingSequence}
-              currentSequenceIndex={gameState.currentSequenceIndex}
-            />
-          )}
+            {(!gameState.waitingForInput || gameState.showLevelFeedback) && (
+              <SequenceDisplay
+                sequence={gameState.sequence}
+                gameColors={currentColors}
+                showingSequence={gameState.showingSequence}
+                currentSequenceIndex={gameState.currentSequenceIndex}
+              />
+            )}
 
-          {/* Progress Feedback */}
-          {gameState.waitingForInput && (
-            <ProgressFeedback
-              sequence={gameState.sequence}
-              userProgress={gameState.userProgress}
-              currentInputIndex={gameState.currentInputIndex}
-            />
-          )}
-
+            {/* Progress Feedback */}
+            {gameState.waitingForInput && (
+              <ProgressFeedback
+                sequence={gameState.sequence}
+                userProgress={gameState.userProgress}
+                currentInputIndex={gameState.currentInputIndex}
+              />
+            )}
           </View>
           {/* Status Messages */}
           <View style={styles.statusContainer}>
@@ -802,6 +836,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
             roundScore={gameState.levelScore}
             isRoundComplete={gameState.levelCompleted}
             onContinue={handleLevelContinue}
+            onPauseAndSave={handlePauseAndSave}
           />
 
           {/* Game Over */}
@@ -839,9 +874,10 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.gameButton}
-                  onPress={() => {
+                  onPress={async () => {
                     endGame(gameState.score);
-                    logGameEnd('memoryRush', gameState.score);
+                    logGameEnd("memoryRush", gameState.score);
+                    await AsyncStorage.removeItem(STORAGE_KEY);
                     navigation.replace("GameOverScreen", {
                       gameType: "memoryRush",
                       score: gameState.score,

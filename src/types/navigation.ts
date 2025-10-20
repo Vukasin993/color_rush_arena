@@ -5,7 +5,11 @@ export type RootStackParamList = {
   LeaderboardScreen: { gameType?: 'colorMatch' | 'reactionTap' | 'colorSnake' | 'memoryRush'; level?: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard' };
   ColorMatchGame: { level?: 'easy' | 'medium' | 'hard'; autoStart?: boolean; bonusTime?: number };
   ReactionGame: { level?: 'easy' | 'medium' | 'hard'; autoStart?: boolean; bonusTime?: number };
-  MemoryRushGame: { level?: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard'; autoStart?: boolean };
+  MemoryRushGame: {
+    level?: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard';
+    autoStart?: boolean;
+    continueSaved?: boolean;
+  };
   GameOverScreen: {
     gameType: 'colorMatch' | 'reactionTap' | 'colorSnake' | 'memoryRush';
     level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard' | number;

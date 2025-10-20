@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import {
 import { useGame } from "../store/useGameStore";
 import { logGameStart } from "../firebase/analytics";
 import { CustomModal } from "../components/CustomModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface GameScreenProps {
   navigation: any;
@@ -28,27 +29,35 @@ interface GameScreenProps {
   };
 }
 
-export const GameScreen: React.FC<GameScreenProps> = ({
-  navigation,
-  route,
-}) => {
-  const gameType = route.params?.gameType || "unknown";
+export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => {
+  const gameType = route?.params?.gameType || "unknown";
   const { isLevelUnlocked } = useGame();
 
   const [showAdModal, setShowAdModal] = useState(false);
-  const [selectedLevel, setSelectedLevel] = useState<
-    "easy" | "medium" | "hard"
-  >("easy");
+  const [selectedLevel, setSelectedLevel] = useState<"easy" | "medium" | "hard">("easy");
+  const [hasSavedMemoryRush, setHasSavedMemoryRush] = useState(false);
+
+  useEffect(() => {
+    if (gameType === 'memoryRush') {
+      (async () => {
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const saved = await AsyncStorage.getItem('@memory_rush_saved_game');
+        setHasSavedMemoryRush(!!saved);
+      })();
+    } else {
+      setHasSavedMemoryRush(false);
+    }
+  }, [gameType]);
 
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
     Orbitron_700Bold,
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (gameType && gameType !== "unknown") logGameStart(gameType);
   }, [gameType]);
-  
+
   const handleAdReward = (level: "easy" | "medium" | "hard") => {
     setSelectedLevel(level);
     setShowAdModal(true);
@@ -76,44 +85,41 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         return {
           title: "Color Match",
           emoji: "🎨",
-          description: "Test your focus with the Stroop effect",
-          instructions:
-            "Tap the color that matches the WORD, not the text color!",
+          description: "Test your color recognition skills!",
+          instructions: "Tap the color that matches the word. The faster you answer, the higher your score!",
+        };
+      case "reactionTap":
+        return {
+          title: "Reaction Tap",
+          emoji: "⚡️",
+          description: "Test your reaction speed!",
+          instructions: "Tap the screen as soon as you see the signal. Try to be as fast as possible!",
         };
       case "memoryRush":
         return {
           title: "Memory Rush",
-          emoji: "🧩",
-          description: "Color sequence memory challenge",
-          instructions:
-            "Watch the sequence, then repeat it by tapping colors in order!",
+          emoji: "🧠",
+          description: "Challenge your memory!",
+          instructions: "Remember the sequence and repeat it. Each round gets harder!",
         };
       case "colorSnake":
         return {
           title: "Color Snake",
           emoji: "🐍",
-          description: "Navigate the neon maze",
-          instructions: "Coming soon...",
+          description: "Coming soon!",
+          instructions: "Eat the right colors to grow your snake. Avoid obstacles!",
         };
       default:
         return {
           title: "Unknown Game",
           emoji: "❓",
-          description: "Game not found",
-          instructions: "This game is not available yet.",
+          description: "Game not found.",
+          instructions: "Please select a valid game mode.",
         };
     }
   };
 
   const gameInfo = getGameInfo();
-
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
@@ -322,12 +328,33 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         {/* Memory Rush - Direct Start */}
         {gameType === "memoryRush" && (
           <View style={styles.buttonsContainer}>
+            {hasSavedMemoryRush && (
+              <TouchableOpacity
+                style={styles.actionButton}
+                activeOpacity={0.8}
+                onPress={() =>
+                  navigation.navigate("MemoryRushGame", { continueSaved: true })
+                }
+              >
+                <LinearGradient
+                  colors={["#FFD60A", "#FF8500"]}
+                  style={styles.actionButtonGradient}
+                >
+                  <Text style={styles.actionButtonText}>
+                    ⏸️ CONTINUE SAVED GAME
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.actionButton}
               activeOpacity={0.8}
-              onPress={() =>
+              onPress={async () => {
+                console.log("REMOVE?")
+                setHasSavedMemoryRush(false);
+                await AsyncStorage.removeItem("@memory_rush_saved_game");
                 navigation.navigate("MemoryRushGame", { autoStart: true })
-              }
+              }}
             >
               <LinearGradient
                 colors={["#00FFC6", "#00D4AA"]}

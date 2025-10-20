@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,13 +6,13 @@ import {
   Animated,
   Modal,
   TouchableOpacity,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   useFonts,
   Orbitron_700Bold,
   Orbitron_400Regular,
-} from '@expo-google-fonts/orbitron';
+} from "@expo-google-fonts/orbitron";
 
 interface RoundFeedbackModalProps {
   visible: boolean;
@@ -21,6 +21,7 @@ interface RoundFeedbackModalProps {
   roundScore: number;
   isRoundComplete: boolean;
   onContinue: () => void;
+  onPauseAndSave?: () => void;
 }
 
 export const RoundFeedbackModal: React.FC<RoundFeedbackModalProps> = ({
@@ -30,6 +31,7 @@ export const RoundFeedbackModal: React.FC<RoundFeedbackModalProps> = ({
   roundScore,
   isRoundComplete,
   onContinue,
+  onPauseAndSave,
 }) => {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -67,8 +69,10 @@ export const RoundFeedbackModal: React.FC<RoundFeedbackModalProps> = ({
   }
 
   const isLastRound = roundNumber >= totalRounds;
-  const title = isLastRound ? "Game Complete!" : `Round ${roundNumber} Complete!`;
-  const subtitle = isLastRound 
+  const title = isLastRound
+    ? "Game Complete!"
+    : `Round ${roundNumber} Complete!`;
+  const subtitle = isLastRound
     ? "Congratulations! You've completed all rounds!"
     : `Get ready for Round ${roundNumber + 1}`;
 
@@ -87,71 +91,78 @@ export const RoundFeedbackModal: React.FC<RoundFeedbackModalProps> = ({
       animationType="none"
       statusBarTranslucent
     >
-      <Animated.View 
-        style={[
-          styles.overlay,
-          { opacity: fadeAnim }
-        ]}
-      />
-      
-      <View style={styles.container}>
-        <Animated.View
-          style={[
-            styles.modal,
-            {
-              transform: [{ scale: scaleAnim }],
-              opacity: fadeAnim,
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={['#1A1A2E', '#16213E', '#0F3460']}
-            style={styles.modalGradient}
+      <View style={{ flex: 1 }}>
+        <Animated.View style={[styles.overlay, { opacity: fadeAnim }]} />
+        <View style={styles.container}>
+          <Animated.View
+            style={[
+              styles.modal,
+              {
+                transform: [{ scale: scaleAnim }],
+                opacity: fadeAnim,
+              },
+            ]}
           >
-            {/* Title */}
-            <Text style={styles.title}>{title}</Text>
-            
-            {/* Round info */}
-            <View style={styles.roundInfo}>
-              <Text style={styles.roundText}>
-                Round Progress: {roundNumber}/{totalRounds}
-              </Text>
-            </View>
-
-            {/* Score display */}
-            <View style={styles.scoreContainer}>
-              <Text style={styles.scoreLabel}>Round Score</Text>
-              <LinearGradient
-                colors={['#FFD60A', '#FF8500']}
-                style={styles.scoreBackground}
-              >
-                <Text style={styles.scoreValue}>{roundScore}</Text>
-              </LinearGradient>
-              <Text style={styles.scoreMessage}>
-                {getScoreMessage(roundScore)}
-              </Text>
-            </View>
-
-            {/* Subtitle */}
-            <Text style={styles.subtitle}>{subtitle}</Text>
-
-            {/* Continue button */}
-            <TouchableOpacity
-              style={styles.continueButton}
-              onPress={onContinue}
-              activeOpacity={0.8}
+            <LinearGradient
+              colors={["#1A1A2E", "#16213E", "#0F3460"]}
+              style={styles.modalGradient}
             >
-              <LinearGradient
-                colors={['#00FFC6', '#00D4AA']}
-                style={styles.buttonGradient}
-              >
-                <Text style={styles.buttonText}>
-                  {isLastRound ? "View Results" : "Continue"}
+              {/* Title */}
+              <Text style={styles.title}>{title}</Text>
+              {/* Round info */}
+              <View style={styles.roundInfo}>
+                <Text style={styles.roundText}>
+                  Round Progress: {roundNumber}/{totalRounds}
                 </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </LinearGradient>
-        </Animated.View>
+              </View>
+              {/* Score display */}
+              <View style={styles.scoreContainer}>
+                <Text style={styles.scoreLabel}>Round Score</Text>
+                <LinearGradient
+                  colors={["#FFD60A", "#FF8500"]}
+                  style={styles.scoreBackground}
+                >
+                  <Text style={styles.scoreValue}>{roundScore}</Text>
+                </LinearGradient>
+                <Text style={styles.scoreMessage}>
+                  {getScoreMessage(roundScore)}
+                </Text>
+              </View>
+              {/* Subtitle */}
+              <Text style={styles.subtitle}>{subtitle}</Text>
+              {/* Pause and Save button */}
+              {onPauseAndSave && (
+                <TouchableOpacity
+                  style={[styles.continueButton, { marginBottom: 10 }]}
+                  onPress={onPauseAndSave}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={["#FFD60A", "#FF8500"]}
+                    style={styles.buttonGradient}
+                  >
+                    <Text style={styles.buttonText}>⏸️ Pause and Save</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+              {/* Continue button */}
+              <TouchableOpacity
+                style={styles.continueButton}
+                onPress={onContinue}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={["#00FFC6", "#00D4AA"]}
+                  style={styles.buttonGradient}
+                >
+                  <Text style={styles.buttonText}>
+                    {isLastRound ? "View Results" : "Continue"}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </LinearGradient>
+          </Animated.View>
+        </View>
       </View>
     </Modal>
   );
@@ -159,25 +170,25 @@ export const RoundFeedbackModal: React.FC<RoundFeedbackModalProps> = ({
 
 const styles = StyleSheet.create({
   overlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
   },
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   modal: {
-    width: '90%',
+    width: "90%",
     maxWidth: 400,
     borderRadius: 20,
     elevation: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -185,17 +196,17 @@ const styles = StyleSheet.create({
   modalGradient: {
     borderRadius: 20,
     padding: 30,
-    alignItems: 'center',
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: 'rgba(0, 255, 198, 0.3)',
+    borderColor: "rgba(0, 255, 198, 0.3)",
   },
   title: {
     fontSize: 24,
-    fontFamily: 'Orbitron_700Bold',
-    color: '#00FFC6',
-    textAlign: 'center',
+    fontFamily: "Orbitron_700Bold",
+    color: "#00FFC6",
+    textAlign: "center",
     marginBottom: 15,
-    textShadowColor: '#00FFC6',
+    textShadowColor: "#00FFC6",
     textShadowRadius: 10,
   },
   roundInfo: {
@@ -203,18 +214,18 @@ const styles = StyleSheet.create({
   },
   roundText: {
     fontSize: 14,
-    fontFamily: 'Orbitron_400Regular',
-    color: '#B8B8D1',
-    textAlign: 'center',
+    fontFamily: "Orbitron_400Regular",
+    color: "#B8B8D1",
+    textAlign: "center",
   },
   scoreContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 25,
   },
   scoreLabel: {
     fontSize: 16,
-    fontFamily: 'Orbitron_400Regular',
-    color: '#FFFFFF',
+    fontFamily: "Orbitron_400Regular",
+    color: "#FFFFFF",
     marginBottom: 10,
   },
   scoreBackground: {
@@ -223,29 +234,29 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 10,
     elevation: 5,
-    shadowColor: '#FFD60A',
+    shadowColor: "#FFD60A",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
   },
   scoreValue: {
     fontSize: 32,
-    fontFamily: 'Orbitron_700Bold',
-    color: '#1A1A2E',
-    textAlign: 'center',
+    fontFamily: "Orbitron_700Bold",
+    color: "#1A1A2E",
+    textAlign: "center",
   },
   scoreMessage: {
     fontSize: 16,
-    fontFamily: 'Orbitron_400Regular',
-    color: '#FFD60A',
-    textAlign: 'center',
-    textShadowColor: '#FFD60A',
+    fontFamily: "Orbitron_400Regular",
+    color: "#FFD60A",
+    textAlign: "center",
+    textShadowColor: "#FFD60A",
     textShadowRadius: 5,
   },
   progressDots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 20,
     gap: 10,
   },
@@ -255,39 +266,39 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   completedDot: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
     elevation: 3,
-    shadowColor: '#4CAF50',
+    shadowColor: "#4CAF50",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
   },
   currentDot: {
-    backgroundColor: '#FFD60A',
+    backgroundColor: "#FFD60A",
     elevation: 5,
-    shadowColor: '#FFD60A',
+    shadowColor: "#FFD60A",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.7,
     shadowRadius: 5,
   },
   pendingDot: {
-    backgroundColor: '#37474F',
+    backgroundColor: "#37474F",
     borderWidth: 1,
-    borderColor: '#546E7A',
+    borderColor: "#546E7A",
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'Orbitron_400Regular',
-    color: '#B8B8D1',
-    textAlign: 'center',
+    fontFamily: "Orbitron_400Regular",
+    color: "#B8B8D1",
+    textAlign: "center",
     marginBottom: 25,
     lineHeight: 20,
   },
   continueButton: {
-    width: '100%',
+    width: "100%",
     borderRadius: 15,
     elevation: 8,
-    shadowColor: '#00FFC6',
+    shadowColor: "#00FFC6",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.6,
     shadowRadius: 10,
@@ -296,11 +307,11 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 15,
-    alignItems: 'center',
+    alignItems: "center",
   },
   buttonText: {
-    fontSize: 18,
-    fontFamily: 'Orbitron_700Bold',
-    color: '#1A1A2E',
+    fontSize: 14,
+    fontFamily: "Orbitron_700Bold",
+    color: "#1A1A2E",
   },
 });
