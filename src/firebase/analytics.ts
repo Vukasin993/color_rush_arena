@@ -1,26 +1,43 @@
-import * as Analytics from 'expo-firebase-analytics';
+import { getAnalytics, logEvent, setUserId, setUserProperties } from 'firebase/analytics';
+import app from './config';
+
+let analytics: ReturnType<typeof getAnalytics> | null = null;
+try {
+  analytics = getAnalytics(app);
+} catch (e) {
+  // getAnalytics may fail on unsupported platforms (web only)
+  analytics = null;
+}
+
 
 export const logAppOpen = async () => {
-  await Analytics.logEvent('app_open');
+  if (analytics) logEvent(analytics, 'app_open');
 };
+
 
 export const logRegistration = async (userId: string) => {
-  await Analytics.setUserId(userId);
-  await Analytics.logEvent('user_registered');
+  if (analytics) {
+    setUserId(analytics, userId);
+    logEvent(analytics, 'user_registered');
+  }
 };
+
 
 export const logGameStart = async (gameType: string) => {
-  await Analytics.logEvent('game_start', { gameType });
+  if (analytics) logEvent(analytics, 'game_start', { gameType });
 };
+
 
 export const logGameEnd = async (gameType: string, score: number) => {
-  await Analytics.logEvent('game_end', { gameType, score });
+  if (analytics) logEvent(analytics, 'game_end', { gameType, score });
 };
+
 
 export const logRetention = async (days: number) => {
-  await Analytics.logEvent('user_retention', { days });
+  if (analytics) logEvent(analytics, 'user_retention', { days });
 };
 
+
 export const setUserProperty = async (props: Record<string, any>) => {
-  await Analytics.setUserProperties(props);
+  if (analytics) setUserProperties(analytics, props);
 };

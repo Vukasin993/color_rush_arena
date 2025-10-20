@@ -40,7 +40,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
   useEffect(() => {
     if (gameType === 'memoryRush') {
       (async () => {
-        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
         const saved = await AsyncStorage.getItem('@memory_rush_saved_game');
         setHasSavedMemoryRush(!!saved);
       })();
