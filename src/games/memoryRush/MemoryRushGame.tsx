@@ -430,11 +430,11 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
       userProgress: initialSequence.map(() => ({ status: "pending" as const })),
       currentInputIndex: 0,
       levelScore: 0,
-      powerUps: {
-        repeatSequence: 3,
-        skipLevel: 3,
-        adsWatched: 0,
-      },
+        powerUps: {
+          repeatSequence: 1,
+          skipLevel: 1,
+          adsWatched: 0,
+        },
       highestLevel: 1,
       canWatchAdToContinue: true,
     });
@@ -488,11 +488,11 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
       userProgress: initialSequence.map(() => ({ status: "pending" as const })),
       currentInputIndex: 0,
       levelScore: 0,
-      powerUps: {
-        repeatSequence: 3,
-        skipLevel: 3,
-        adsWatched: 0,
-      },
+        powerUps: {
+          repeatSequence: 1,
+          skipLevel: 1,
+          adsWatched: 0,
+        },
       highestLevel: 1,
       canWatchAdToContinue: true,
     });

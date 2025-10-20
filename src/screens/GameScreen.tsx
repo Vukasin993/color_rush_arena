@@ -98,7 +98,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
       case "memoryRush":
         return {
           title: "Memory Rush",
-          emoji: "🧠",
+          emoji: "🧩",
           description: "Challenge your memory!",
           instructions: "Remember the sequence and repeat it. Each round gets harder!",
         };

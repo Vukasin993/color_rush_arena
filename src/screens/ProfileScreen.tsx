@@ -363,7 +363,7 @@ export const ProfileScreen: React.FC = () => {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🧠 Memory Rush Stats</Text>
+          <Text style={styles.sectionTitle}>🧩 Memory Rush Stats</Text>
           <View style={styles.gameStats}>
             <View style={styles.gameStatRow}>
               <Text style={styles.gameStatLabel}>Best Score:</Text>
