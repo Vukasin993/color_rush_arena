@@ -839,8 +839,8 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
             onPauseAndSave={handlePauseAndSave}
           />
 
-          {/* Game Over */}
-          {gameState.gameOver && (
+          {/* Game Over or Level 999 Completion */}
+          {gameState.gameOver && gameState.currentLevel !== 1000 && (
             <View style={styles.gameOverOverlay}>
               <View style={styles.gameOverModal}>
                 <Text style={styles.gameOverTitle}>Game Over!</Text>
@@ -888,6 +888,47 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
                   }}
                 >
                   <Text style={styles.gameButtonText}>Game Over</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Special Modal for Level 999 Completion */}
+          {gameState.currentLevel === 1000 && (
+            <View style={styles.gameOverOverlay}>
+              <View style={[styles.gameOverModal, { borderColor: '#FFD700', backgroundColor: '#1a1a2e' }]}> 
+                <Text style={[styles.gameOverTitle, { color: '#FFD700', fontSize: 32 }]}>🏅 LEGENDARY!</Text>
+                <Text style={{ fontSize: 22, color: '#FFD700', fontFamily: 'Orbitron_700Bold', textAlign: 'center', marginBottom: 20 }}>
+                  You completed LEVEL 999!
+                </Text>
+                <Text style={{ fontSize: 18, color: '#FFFFFF', textAlign: 'center', marginBottom: 10 }}>
+                  This is a world-class achievement. Your memory and focus are unmatched!
+                </Text>
+                <Text style={{ fontSize: 16, color: '#FFD700', textAlign: 'center', marginBottom: 20 }}>
+                  Final Score: {gameState.score}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.gameButton, { backgroundColor: '#FFD700' }]}
+                  onPress={handleRestart}
+                >
+                  <Text style={[styles.gameButtonText, { color: '#1a1a2e' }]}>Play Again</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.gameButton}
+                  onPress={async () => {
+                    endGame(gameState.score);
+                    logGameEnd("memoryRush", gameState.score);
+                    await AsyncStorage.removeItem(STORAGE_KEY);
+                    navigation.replace("GameOverScreen", {
+                      gameType: "memoryRush",
+                      score: gameState.score,
+                      xpEarned: Math.round(gameState.score * 1.2),
+                      level: gameState.currentLevel,
+                      highestLevel: gameState.highestLevel,
+                    });
+                  }}
+                >
+                  <Text style={styles.gameButtonText}>Finish</Text>
                 </TouchableOpacity>
               </View>
             </View>
