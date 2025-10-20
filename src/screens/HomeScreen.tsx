@@ -19,6 +19,7 @@ import {
   Orbitron_900Black,
 } from "@expo-google-fonts/orbitron";
 import { useAuth } from "../store/useAuthStore";
+import { logAppOpen } from "../firebase/analytics";
 import Avatar1 from "../../assets/svg/1.svg";
 import Avatar2 from "../../assets/svg/2.svg";
 import Avatar3 from "../../assets/svg/3.svg";
@@ -147,6 +148,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
+    logAppOpen();
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       handleBackPress

@@ -19,6 +19,7 @@ import {
   Orbitron_900Black,
 } from "@expo-google-fonts/orbitron";
 import { useGame } from "../../store/useGameStore";
+import { logGameStart, logGameEnd } from '../../firebase/analytics';
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
 import { ColorGrid } from "./components/ColorGrid";
@@ -387,6 +388,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
 
   // Start new game
   const handleStartGame = useCallback(() => {
+  logGameStart('memoryRush');
     const initialSequence = generateSequence(1);
 
     setGameStarted(true);
@@ -446,6 +448,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
 
   // Restart game
   const handleRestart = useCallback(() => {
+  logGameStart('memoryRush');
     const initialSequence = generateSequence(1);
     setGameState({
       sequence: initialSequence,
@@ -596,7 +599,10 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
             >
               <TouchableOpacity
                 style={styles.backButton}
-                onPress={() => navigation.goBack()}
+                onPress={() => {
+                  logGameEnd('memoryRush', gameState.score);
+                  navigation.goBack();
+                }}
                 activeOpacity={0.7}
               >
                 <Ionicons name="arrow-back" size={24} color="#00FFC6" />
@@ -835,6 +841,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
                   style={styles.gameButton}
                   onPress={() => {
                     endGame(gameState.score);
+                    logGameEnd('memoryRush', gameState.score);
                     navigation.replace("GameOverScreen", {
                       gameType: "memoryRush",
                       score: gameState.score,

@@ -99,18 +99,12 @@ export const AppNavigator: React.FC = () => {
   const { isAuthenticated, isLoading, checkAuthStatus } = useAuth();
 
   useEffect(() => {
-    console.log('🔍 AppNavigator checking auth status...');
     checkAuthStatus();
   }, [checkAuthStatus]);
 
-  console.log('🚦 AppNavigator state:', { isAuthenticated, isLoading });
-
   if (isLoading) {
-    console.log('⏳ AppNavigator showing loading screen');
     return <LoadingScreen />;
   }
-
-  console.log('🎯 AppNavigator rendering:', isAuthenticated ? 'AuthenticatedStack' : 'UnauthenticatedStack');
 
   return (
     <NavigationContainer>
