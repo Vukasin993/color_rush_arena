@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,68 +6,73 @@ import {
   TouchableOpacity,
   ScrollView,
   StatusBar,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+  BackHandler,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import { CustomModal } from "../components/CustomModal";
 import {
   useFonts,
   Orbitron_400Regular,
   Orbitron_700Bold,
   Orbitron_900Black,
-} from '@expo-google-fonts/orbitron';
-import { useAuth } from '../store/useAuthStore';
-import Avatar1 from '../../assets/svg/1.svg';
-import Avatar2 from '../../assets/svg/2.svg';
-import Avatar3 from '../../assets/svg/3.svg';
-import Avatar4 from '../../assets/svg/4.svg';
-import Avatar5 from '../../assets/svg/5.svg';
-import Avatar6 from '../../assets/svg/6.svg';
-import Avatar7 from '../../assets/svg/7.svg';
-import Avatar8 from '../../assets/svg/8.svg';
-import Avatar9 from '../../assets/svg/9.svg';
-import Avatar10 from '../../assets/svg/10.svg';
-import Avatar11 from '../../assets/svg/11.svg';
-import Avatar12 from '../../assets/svg/12.svg';
-import Avatar13 from '../../assets/svg/13.svg';
-import Avatar14 from '../../assets/svg/14.svg';
-import Avatar15 from '../../assets/svg/15.svg';
-import Avatar16 from '../../assets/svg/16.svg';
-import Avatar17 from '../../assets/svg/17.svg';
-import Avatar18 from '../../assets/svg/18.svg';
-import Avatar19 from '../../assets/svg/19.svg';
-import Avatar20 from '../../assets/svg/20.svg';
-import Avatar21 from '../../assets/svg/21.svg';
+} from "@expo-google-fonts/orbitron";
+import { useAuth } from "../store/useAuthStore";
+import Avatar1 from "../../assets/svg/1.svg";
+import Avatar2 from "../../assets/svg/2.svg";
+import Avatar3 from "../../assets/svg/3.svg";
+import Avatar4 from "../../assets/svg/4.svg";
+import Avatar5 from "../../assets/svg/5.svg";
+import Avatar6 from "../../assets/svg/6.svg";
+import Avatar7 from "../../assets/svg/7.svg";
+import Avatar8 from "../../assets/svg/8.svg";
+import Avatar9 from "../../assets/svg/9.svg";
+import Avatar10 from "../../assets/svg/10.svg";
+import Avatar11 from "../../assets/svg/11.svg";
+import Avatar12 from "../../assets/svg/12.svg";
+import Avatar13 from "../../assets/svg/13.svg";
+import Avatar14 from "../../assets/svg/14.svg";
+import Avatar15 from "../../assets/svg/15.svg";
+import Avatar16 from "../../assets/svg/16.svg";
+import Avatar17 from "../../assets/svg/17.svg";
+import Avatar18 from "../../assets/svg/18.svg";
+import Avatar19 from "../../assets/svg/19.svg";
+import Avatar20 from "../../assets/svg/20.svg";
+import Avatar21 from "../../assets/svg/21.svg";
 
 const avatarMap = {
-  '1.svg': Avatar1,
-  '2.svg': Avatar2,
-  '3.svg': Avatar3,
-  '4.svg': Avatar4,
-  '5.svg': Avatar5,
-  '6.svg': Avatar6,
-  '7.svg': Avatar7,
-  '8.svg': Avatar8,
-  '9.svg': Avatar9,
-  '10.svg': Avatar10,
-  '11.svg': Avatar11,
-  '12.svg': Avatar12,
-  '13.svg': Avatar13,
-  '14.svg': Avatar14,
-  '15.svg': Avatar15,
-  '16.svg': Avatar16,
-  '17.svg': Avatar17,
-  '18.svg': Avatar18,
-  '19.svg': Avatar19,
-  '20.svg': Avatar20,
-  '21.svg': Avatar21,
+  "1.svg": Avatar1,
+  "2.svg": Avatar2,
+  "3.svg": Avatar3,
+  "4.svg": Avatar4,
+  "5.svg": Avatar5,
+  "6.svg": Avatar6,
+  "7.svg": Avatar7,
+  "8.svg": Avatar8,
+  "9.svg": Avatar9,
+  "10.svg": Avatar10,
+  "11.svg": Avatar11,
+  "12.svg": Avatar12,
+  "13.svg": Avatar13,
+  "14.svg": Avatar14,
+  "15.svg": Avatar15,
+  "16.svg": Avatar16,
+  "17.svg": Avatar17,
+  "18.svg": Avatar18,
+  "19.svg": Avatar19,
+  "20.svg": Avatar20,
+  "21.svg": Avatar21,
 };
 
 interface UserAvatarProps {
   avatar?: string;
   size?: number;
 }
-const UserAvatar: React.FC<UserAvatarProps> = ({ avatar = '1.svg', size = 32 }) => {
+const UserAvatar: React.FC<UserAvatarProps> = ({
+  avatar = "1.svg",
+  size = 32,
+}) => {
   const SvgIcon = avatarMap[avatar as keyof typeof avatarMap] || Avatar1;
   return <SvgIcon width={size} height={size} fill="#fff" />;
 };
@@ -95,7 +100,7 @@ const GameCard: React.FC<GameCardProps> = ({
       disabled={isComingSoon}
     >
       <LinearGradient
-        colors={['#8E2DE2', '#4A00E0', '#00FFC6']}
+        colors={["#8E2DE2", "#4A00E0", "#00FFC6"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.cardGradientBorder}
@@ -118,23 +123,38 @@ const GameCard: React.FC<GameCardProps> = ({
 interface HomeScreenProps {
   navigation: any;
 }
-
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { user } = useAuth();
-
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
     Orbitron_700Bold,
     Orbitron_900Black,
   });
+  const [showExitModal, setShowExitModal] = useState(false);
 
   const handleGamePress = (gameType: string) => {
-    navigation.navigate('GameScreen', { gameType });
+    navigation.navigate("GameScreen", { gameType });
   };
 
   const handleLeaderboardPress = () => {
-    navigation.navigate('LeaderboardScreen');
+    navigation.navigate("LeaderboardScreen");
   };
+
+  // Prevent back button exit
+  const handleBackPress = useCallback(() => {
+    setShowExitModal(true);
+    return true;
+  }, []);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleBackPress
+    );
+    return () => {
+      subscription.remove();
+    };
+  }, [handleBackPress]);
 
   if (!fontsLoaded) {
     return (
@@ -145,9 +165,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
-      
       {/* Floating Leaderboard Button */}
       <TouchableOpacity
         style={styles.floatingButton}
@@ -155,7 +174,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         activeOpacity={0.8}
       >
         <LinearGradient
-          colors={['#FF006E', '#8E2DE2']}
+          colors={["#FF006E", "#8E2DE2"]}
           style={styles.floatingButtonGradient}
         >
           <Ionicons name="trophy" size={24} color="#FFFFFF" />
@@ -171,9 +190,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <Text style={styles.mainTitle}>COLOR RUSH</Text>
           <Text style={styles.subtitle}>ARENA</Text>
           <View style={styles.userInfo}>
-            <UserAvatar avatar={user?.avatar || '1.svg'} size={28} />
+            <UserAvatar avatar={user?.avatar || "1.svg"} size={28} />
             <Text style={styles.userText}>
-              Player: {user?.username || 'Guest'}
+              Player: {user?.username || "Guest"}
             </Text>
           </View>
         </View>
@@ -181,30 +200,50 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         {/* Game Cards */}
         <View style={styles.gamesContainer}>
           <Text style={styles.sectionTitle}>Choose Your Challenge</Text>
-          
           <GameCard
             title="Color Match"
             emoji="🎨"
             description="Test your focus with the Stroop effect"
-            onPress={() => handleGamePress('colorMatch')}
+            onPress={() => handleGamePress("colorMatch")}
           />
-
           <GameCard
             title="Memory Rush"
             emoji="🧩"
             description="Color sequence memory challenge"
-            onPress={() => handleGamePress('memoryRush')}
+            onPress={() => handleGamePress("memoryRush")}
           />
-
           <GameCard
             title="Color Snake"
             emoji="🐍"
             description="Navigate the neon maze"
-            onPress={() => handleGamePress('colorSnake')}
+            onPress={() => handleGamePress("colorSnake")}
             isComingSoon={true}
           />
         </View>
       </ScrollView>
+      <CustomModal
+        visible={showExitModal}
+        onClose={() => setShowExitModal(false)}
+        title="Exit Game"
+        message="Are you sure you want to exit Color Rush Arena?"
+        icon="alert"
+        iconColor="#FFD60A"
+        buttons={[
+          {
+            text: "Cancel",
+            style: "secondary",
+            onPress: () => setShowExitModal(false),
+          },
+          {
+            text: "Exit",
+            style: "destructive",
+            onPress: () => {
+              setShowExitModal(false);
+              BackHandler.exitApp();
+            },
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 };
@@ -212,18 +251,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F0F1B',
+    backgroundColor: "#0F0F1B",
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0F0F1B',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#0F0F1B",
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
-    color: '#8E2DE2',
+    color: "#8E2DE2",
     fontSize: 18,
-    fontFamily: 'Orbitron_400Regular',
+    fontFamily: "Orbitron_400Regular",
   },
   scrollContent: {
     padding: 20,
@@ -231,88 +270,88 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   leaderboardButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 20,
     right: 20,
     width: 50,
     height: 50,
     borderRadius: 25,
     elevation: 8,
-    shadowColor: '#FFB800',
+    shadowColor: "#FFB800",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
     zIndex: 1000,
   },
   floatingButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 10,
     right: 20,
     width: 50,
     height: 50,
     borderRadius: 25,
     elevation: 8,
-    shadowColor: '#FFB800',
+    shadowColor: "#FFB800",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
     zIndex: 1000,
   },
   floatingButtonGradient: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     width: 50,
     height: 50,
     borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   mainTitle: {
     fontSize: 36,
-    fontFamily: 'Orbitron_900Black',
-    color: '#FFFFFF',
-    textShadowColor: '#8E2DE2',
+    fontFamily: "Orbitron_900Black",
+    color: "#FFFFFF",
+    textShadowColor: "#8E2DE2",
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 20,
     letterSpacing: 3,
   },
   subtitle: {
     fontSize: 24,
-    fontFamily: 'Orbitron_700Bold',
-    color: '#00FFC6',
-    textShadowColor: '#00FFC6',
+    fontFamily: "Orbitron_700Bold",
+    color: "#00FFC6",
+    textShadowColor: "#00FFC6",
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 15,
     marginTop: -5,
     letterSpacing: 6,
   },
   userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 15,
     paddingHorizontal: 15,
     paddingVertical: 8,
-    backgroundColor: 'rgba(142, 45, 226, 0.1)',
+    backgroundColor: "rgba(142, 45, 226, 0.1)",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(142, 45, 226, 0.3)',
+    borderColor: "rgba(142, 45, 226, 0.3)",
   },
   userText: {
-    color: '#B8B8D1',
+    color: "#B8B8D1",
     fontSize: 14,
-    fontFamily: 'Orbitron_400Regular',
+    fontFamily: "Orbitron_400Regular",
     marginLeft: 8,
   },
   sectionTitle: {
     fontSize: 20,
-    fontFamily: 'Orbitron_700Bold',
-    color: '#FFFFFF',
-    textAlign: 'center',
+    fontFamily: "Orbitron_700Bold",
+    color: "#FFFFFF",
+    textAlign: "center",
     marginBottom: 20,
-    textShadowColor: '#4A00E0',
+    textShadowColor: "#4A00E0",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
@@ -328,14 +367,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   cardContent: {
-    backgroundColor: '#0F0F1B',
+    backgroundColor: "#0F0F1B",
     borderRadius: 18,
     padding: 25,
-    alignItems: 'center',
+    alignItems: "center",
     minHeight: 160,
-    justifyContent: 'center',
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   cardDisabled: {
     opacity: 0.6,
@@ -346,35 +385,35 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 22,
-    fontFamily: 'Orbitron_700Bold',
-    color: '#FFFFFF',
-    textAlign: 'center',
+    fontFamily: "Orbitron_700Bold",
+    color: "#FFFFFF",
+    textAlign: "center",
     marginBottom: 8,
-    textShadowColor: '#8E2DE2',
+    textShadowColor: "#8E2DE2",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
   },
   cardDescription: {
     fontSize: 14,
-    fontFamily: 'Orbitron_400Regular',
-    color: '#B8B8D1',
-    textAlign: 'center',
+    fontFamily: "Orbitron_400Regular",
+    color: "#B8B8D1",
+    textAlign: "center",
     lineHeight: 20,
     paddingHorizontal: 8,
   },
   comingSoonBadge: {
-    backgroundColor: 'rgba(255, 184, 0, 0.2)',
+    backgroundColor: "rgba(255, 184, 0, 0.2)",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 184, 0, 0.4)',
+    borderColor: "rgba(255, 184, 0, 0.4)",
   },
   comingSoonText: {
     fontSize: 12,
-    fontFamily: 'Orbitron_700Bold',
-    color: '#FFB800',
+    fontFamily: "Orbitron_700Bold",
+    color: "#FFB800",
     letterSpacing: 1,
   },
 });
