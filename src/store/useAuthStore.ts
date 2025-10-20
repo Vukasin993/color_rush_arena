@@ -8,7 +8,8 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
-  
+  musicEnabled: boolean;
+  setMusicEnabled: (enabled: boolean) => void;
   // Actions
   login: (customUsername?: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -33,11 +34,13 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      // Initial state
-      user: null,
-      isLoading: true,
-      isAuthenticated: false,
-      error: null,
+  // Initial state
+  user: null,
+  isLoading: true,
+  isAuthenticated: false,
+  error: null,
+  musicEnabled: true,
+  setMusicEnabled: (enabled: boolean) => set({ musicEnabled: enabled }),
 
       login: async (customUsername?: string) => {
         try {
@@ -286,7 +289,8 @@ export const useAuthStore = create<AuthState>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ 
         user: state.user,
-        isAuthenticated: state.isAuthenticated 
+        isAuthenticated: state.isAuthenticated,
+        musicEnabled: state.musicEnabled
       }),
     }
   )
@@ -309,5 +313,7 @@ export const useAuth = () => {
     syncUserData: store.syncUserData,
     checkAuthStatus: store.checkAuthStatus,
     clearError: store.clearError,
+    musicEnabled: store.musicEnabled,
+    setMusicEnabled: store.setMusicEnabled,
   };
 };

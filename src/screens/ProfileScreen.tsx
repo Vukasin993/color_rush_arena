@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import {
+  StyleSheet,
+  Switch,
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   TextInput,
   StatusBar,
@@ -18,6 +19,7 @@ import {
   Orbitron_700Bold,
 } from "@expo-google-fonts/orbitron";
 import { useAuth } from "../store/useAuthStore";
+import { CustomModal } from "../components/CustomModal";
 import Avatar1 from '../../assets/svg/1.svg';
 import Avatar2 from '../../assets/svg/2.svg';
 import Avatar3 from '../../assets/svg/3.svg';
@@ -38,6 +40,7 @@ import Avatar17 from '../../assets/svg/17.svg';
 import Avatar18 from '../../assets/svg/18.svg';
 import Avatar19 from '../../assets/svg/19.svg';
 import Avatar20 from '../../assets/svg/20.svg';
+
 import Avatar21 from '../../assets/svg/21.svg';
 
 const avatarMap = {
@@ -61,8 +64,8 @@ const avatarMap = {
   '18.svg': Avatar18,
   '19.svg': Avatar19,
   '20.svg': Avatar20,
-  '21.svg': Avatar21,
-};
+    '21.svg': Avatar21,
+  };
 
 interface UserAvatarProps {
   avatar?: string;
@@ -72,16 +75,15 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ avatar = '1.svg', size = 48 }) 
   const SvgIcon = avatarMap[avatar as keyof typeof avatarMap] || Avatar1;
   return <SvgIcon width={size} height={size} fill="#fff" />;
 };
-import { CustomModal } from "../components/CustomModal";
+
 
 export const ProfileScreen: React.FC = () => {
-  const { user, updateUsername, deleteAccount } = useAuth();
+  const { user, updateUsername, deleteAccount, musicEnabled, setMusicEnabled } = useAuth();
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState(user?.username || "");
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showFinalDeleteModal, setShowFinalDeleteModal] = useState(false);
-
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
     Orbitron_700Bold,
@@ -416,6 +418,20 @@ export const ProfileScreen: React.FC = () => {
             <Text style={styles.accountInfoText}>User ID: {user.uid}</Text>
           </View>
         </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Music</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(26, 26, 46, 0.6)", borderRadius: 12, padding: 15, borderWidth: 1, borderColor: "rgba(142, 45, 226, 0.3)" }}>
+            <Text style={{ color: "#FFFFFF", fontSize: 16, fontFamily: "Orbitron_400Regular" }}>
+              Background Music
+            </Text>
+            <Switch
+              value={musicEnabled}
+              onValueChange={setMusicEnabled}
+              thumbColor={musicEnabled ? "#00FFC6" : "#6B7280"}
+              trackColor={{ false: "#222", true: "#00FFC6" }}
+            />
+          </View>
+        </View>
         {/* Actions */}
         <View style={styles.section}>
           {/* <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -733,3 +749,4 @@ const styles = StyleSheet.create({
     height: 20,
   },
 });
+
