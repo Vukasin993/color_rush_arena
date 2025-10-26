@@ -274,6 +274,63 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
     [gameState.currentLevel]
   );
 
+  // Display sequence with preserved progress (for repeat power-up)
+  const displaySequenceWithProgress = useCallback(
+    (sequence: string[], savedPlayerInput: string[], savedUserProgress: FeedbackSquare[], savedCurrentInputIndex: number) => {
+      console.log("displaySequenceWithProgress called with:", sequence, "savedProgress:", savedPlayerInput);
+      setGameState((prev) => ({
+        ...prev,
+        sequence: sequence,
+        showingSequence: true,
+        waitingForInput: false,
+        currentSequenceIndex: -1,
+        // Zadrži stari progres umesto da ga resetuje
+        playerInput: savedPlayerInput,
+        userProgress: savedUserProgress,
+        currentInputIndex: savedCurrentInputIndex,
+      }));
+
+      let index = 0;
+      const showNextColor = () => {
+        if (index < sequence.length) {
+          setGameState((prev) => ({
+            ...prev,
+            currentSequenceIndex: index,
+          }));
+
+          sequenceTimeoutRef.current = setTimeout(() => {
+            setGameState((prev) => ({
+              ...prev,
+              currentSequenceIndex: -1,
+            }));
+
+            setTimeout(() => {
+              index++;
+              showNextColor();
+            }, 200);
+          }, getGameConfig(gameState.currentLevel).displaySpeed);
+        } else {
+          // Sequence display complete, wait for player input - zadrži progres
+          setTimeout(() => {
+            setGameState((prev) => ({
+              ...prev,
+              showingSequence: false,
+              waitingForInput: true,
+              currentSequenceIndex: -1,
+              // Eksplicitno zadrži sačuvani progres
+              playerInput: savedPlayerInput,
+              userProgress: savedUserProgress,
+              currentInputIndex: savedCurrentInputIndex,
+            }));
+          }, 500);
+        }
+      };
+
+      showNextColor();
+    },
+    [gameState.currentLevel]
+  );
+
   // Handle player color selection
   const handleColorPress = useCallback(
     (colorId: string) => {
@@ -402,9 +459,10 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
       gameState.waitingForInput,
       gameState.gameOver,
       gameState.userProgress,
+      gameState.playerInput.length,
+      gameState.score,
+      gameState.highestLevel,
       updateScore,
-      generateSequence,
-      displaySequence,
       shakeAnimation,
     ]
   );
@@ -502,8 +560,6 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   }, [
     generateSequence,
     displaySequence,
-    gameState.score,
-    gameState.highestLevel,
   ]);
 
   // Watch ad to continue
@@ -526,6 +582,11 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   // Use repeat sequence power-up
   const useRepeatSequence = useCallback(() => {
     if (gameState.powerUps.repeatSequence > 0 && gameState.waitingForInput) {
+      // Sačuvaj trenutni progres pre ponovnog prikaza
+      const currentProgress = gameState.playerInput;
+      const currentUserProgress = gameState.userProgress;
+      const currentInputIndex = gameState.currentInputIndex;
+      
       setGameState((prev) => ({
         ...prev,
         powerUps: {
@@ -536,14 +597,18 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
       }));
 
       setTimeout(() => {
-        displaySequence(gameState.sequence);
+        // Prikaži sekvencu ali zadrži progres
+        displaySequenceWithProgress(gameState.sequence, currentProgress, currentUserProgress, currentInputIndex);
       }, 300);
     }
   }, [
     gameState.powerUps.repeatSequence,
     gameState.waitingForInput,
     gameState.sequence,
-    displaySequence,
+    gameState.playerInput,
+    gameState.userProgress,
+    gameState.currentInputIndex,
+    displaySequenceWithProgress,
   ]);
 
   // Use skip level power-up

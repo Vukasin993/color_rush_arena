@@ -241,6 +241,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
   };
   
   const displayScores = getDisplayScores();
+  console.log("displayScores", displayScores)
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
     Orbitron_700Bold,
@@ -389,7 +390,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
                   <View style={styles.leaderboardMainInfo}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       {score.avatar && avatarKeys.includes(score.avatar as AvatarKey) ? (
-                        <UserAvatar avatar={score.avatar as AvatarKey} size={28} />
+                        <UserAvatar avatar={score.avatar as AvatarKey} size={22} />
                       ) : (
                         <UserAvatar avatar="1.svg" size={28} />
                       )}
@@ -543,7 +544,7 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   leaderboardUsername: {
-    fontSize: 18,
+    fontSize: 14,
     fontFamily: 'Orbitron_700Bold',
     color: '#FFFFFF',
     marginBottom: 2,
@@ -566,7 +567,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   rankEmoji: {
-    fontSize: 16,
+    fontSize: 12,
   },
   rankNumber: {
     fontSize: 12,
