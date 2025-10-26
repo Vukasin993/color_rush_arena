@@ -143,7 +143,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   route,
 }) => {
   const { autoStart = false, continueSaved = false } = route.params || {};
-  const { startGame, updateScore, endGame } = useGame();
+  const { startGame, updateScore, endGame, addGameResult, memoryRushStats } = useGame();
 
   const [gameStarted, setGameStarted] = useState(false);
 
@@ -187,7 +187,6 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
     if (continueSaved) {
       (async () => {
         const savedStr = await AsyncStorage.getItem(STORAGE_KEY);
-        console.log("*** SAVED STR: ***", savedStr);
         if (savedStr) {
           const saved = JSON.parse(savedStr);
           setGameState(saved);
@@ -198,7 +197,6 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   }, [continueSaved]);
 
   const handlePauseAndSave = useCallback(async () => {
-  console.log("*** GAME STATE *** ", gameState);
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
   navigation.navigate("MainTabs", { screen: "HomeScreen" });
   }, [gameState, navigation]);
@@ -220,7 +218,6 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   // Display sequence to player
   const displaySequence = useCallback(
     (sequence: string[]) => {
-      console.log("displaySequence called with:", sequence);
       setGameState((prev) => ({
         ...prev,
         sequence: sequence,
@@ -233,12 +230,6 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
 
       let index = 0;
       const showNextColor = () => {
-        console.log(
-          "showNextColor, index:",
-          index,
-          "sequence.length:",
-          sequence.length
-        );
         if (index < sequence.length) {
           setGameState((prev) => ({
             ...prev,
@@ -277,7 +268,6 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   // Display sequence with preserved progress (for repeat power-up)
   const displaySequenceWithProgress = useCallback(
     (sequence: string[], savedPlayerInput: string[], savedUserProgress: FeedbackSquare[], savedCurrentInputIndex: number) => {
-      console.log("displaySequenceWithProgress called with:", sequence, "savedProgress:", savedPlayerInput);
       setGameState((prev) => ({
         ...prev,
         sequence: sequence,
@@ -395,6 +385,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
             // Update stats in Firebase and store
             const updateGameStats = useAuthStore.getState().updateGameStats;
             const xpEarned = Math.round(gameState.score * 1.2);
+            // Update Firebase stats
             await updateGameStats(
               "memoryRush",
               "easy",
@@ -402,6 +393,16 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
               xpEarned,
               gameState.highestLevel
             );
+            
+            // Update local store stats
+            addGameResult({
+              gameType: 'memoryRush',
+              level: 'easy', // Memory Rush doesn't use string levels, so use default
+              score: gameState.score,
+              xpEarned,
+              duration: 0,
+            }, gameState.highestLevel);
+            
             setGameState((p) => ({
               ...p,
               gameOver: true,
@@ -458,6 +459,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
       gameState.highestLevel,
       updateScore,
       shakeAnimation,
+      addGameResult,
     ]
   );
 
@@ -507,6 +509,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
       ...prev,
       showLevelFeedback: false,
       levelCompleted: false,
+      currentLevel: newLevel,
       sequence: newSequence,
       playerInput: [],
       waitingForInput: false,
@@ -775,7 +778,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
                 Level: {gameState.currentLevel}
               </Text>
               <Text style={styles.levelText}>
-                Best: {gameState.highestLevel}
+                Best: {Math.max(gameState.highestLevel, memoryRushStats.highestLevel || 1)}
               </Text>
             </View>
 
@@ -921,6 +924,30 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
                 <TouchableOpacity
                   style={styles.gameButton}
                   onPress={async () => {
+                    // Update stats if game wasn't already recorded (when game over by button click)
+                    if (!gameState.gameOver) {
+                      const updateGameStats = useAuthStore.getState().updateGameStats;
+                      const xpEarned = Math.round(gameState.score * 1.2);
+                      
+                      // Update Firebase stats
+                      await updateGameStats(
+                        "memoryRush",
+                        "easy",
+                        gameState.score,
+                        xpEarned,
+                        gameState.highestLevel
+                      );
+                      
+                      // Update local store stats
+                      addGameResult({
+                        gameType: 'memoryRush',
+                        level: 'easy', // Memory Rush doesn't use string levels, so use default
+                        score: gameState.score,
+                        xpEarned,
+                        duration: 0,
+                      }, gameState.highestLevel);
+                    }
+                    
                     endGame(gameState.score);
                     logGameEnd("memoryRush", gameState.score);
                     await AsyncStorage.removeItem(STORAGE_KEY);
@@ -962,6 +989,28 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
                 <TouchableOpacity
                   style={styles.gameButton}
                   onPress={async () => {
+                    // Update stats for level 999 completion
+                    const updateGameStats = useAuthStore.getState().updateGameStats;
+                    const xpEarned = Math.round(gameState.score * 1.2);
+                    
+                    // Update Firebase stats
+                    await updateGameStats(
+                      "memoryRush",
+                      "easy",
+                      gameState.score,
+                      xpEarned,
+                      gameState.highestLevel
+                    );
+                    
+                    // Update local store stats
+                    addGameResult({
+                      gameType: 'memoryRush',
+                      level: 'easy', // Memory Rush doesn't use string levels, so use default
+                      score: gameState.score,
+                      xpEarned,
+                      duration: 0,
+                    }, gameState.highestLevel);
+                    
                     endGame(gameState.score);
                     logGameEnd("memoryRush", gameState.score);
                     await AsyncStorage.removeItem(STORAGE_KEY);

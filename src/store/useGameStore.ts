@@ -49,7 +49,7 @@ interface GameStore {
   endGame: (finalScore: number) => void;
   updateScore: (points: number) => void;
   updateTimer: (time: number) => void;
-  addGameResult: (result: Omit<GameResult, 'id' | 'date'>) => void;
+        addGameResult: (result: Omit<GameResult, 'id' | 'date'>, highestLevel?: number) => void;
   resetCurrentGame: () => void;
   unlockLevel: (gameType: 'colorMatch' | 'reactionTap' | 'memoryRush', level: 'medium' | 'hard' | 'extreme' | 'extra-hard') => void;
   checkLevelUnlock: (gameType: 'colorMatch' | 'reactionTap' | 'memoryRush', totalXP: number) => void;
@@ -155,7 +155,7 @@ export const useGameStore = create<GameStore>()(
         }));
       },
 
-      addGameResult: (result) => {
+      addGameResult: (result, highestLevel) => {
         const gameResult: GameResult = {
           ...result,
           id: Date.now().toString(),
@@ -196,8 +196,8 @@ export const useGameStore = create<GameStore>()(
           // Dodaj highestLevel za memoryRush
           let updatedStats: GameStats;
           if (gameType === 'memoryRush') {
-            const newHighestLevel = result.level && typeof result.level === 'number'
-              ? Math.max(currentStats.highestLevel || 1, result.level)
+            const newHighestLevel = typeof highestLevel === 'number'
+              ? Math.max(currentStats.highestLevel || 1, highestLevel)
               : currentStats.highestLevel || 1;
             updatedStats = {
               totalGames: newTotalGames,
