@@ -425,25 +425,19 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
           const newLevel = prev.currentLevel + 1;
           const newHighestLevel = Math.max(prev.highestLevel, newLevel);
 
-          // prvo osveži progres bar (zeleno), pa tek onda feedback modal
-          setTimeout(() => {
-            updateScore(baseScore);
-            setGameState((p) => ({
-              ...p,
-              score: newScore,
-              playerInput: [],
-              waitingForInput: false,
-              levelCompleted: true,
-              showLevelFeedback: true,
-              levelScore: baseScore,
-              highestLevel: newHighestLevel,
-            }));
-          }, 500); // delay pre nego što se pojavi "level complete"
-
+          updateScore(baseScore);
+          
           return {
             ...prev,
+            playerInput: newPlayerInput,
             userProgress: newUserProgress,
             currentInputIndex: currentIndex + 1,
+            score: newScore,
+            waitingForInput: false,
+            levelCompleted: true,
+            showLevelFeedback: true,
+            levelScore: baseScore,
+            highestLevel: newHighestLevel,
           };
         }
 
@@ -512,7 +506,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
     setGameState((prev) => ({
       ...prev,
       showLevelFeedback: false,
-      currentLevel: newLevel,
+      levelCompleted: false,
       sequence: newSequence,
       playerInput: [],
       waitingForInput: false,
@@ -840,7 +834,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
             )}
 
             {/* Progress Feedback */}
-            {gameState.waitingForInput && (
+            {gameState.waitingForInput && !gameState.showLevelFeedback && (
               <ProgressFeedback
                 sequence={gameState.sequence}
                 userProgress={gameState.userProgress}
@@ -850,19 +844,6 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
           </View>
           {/* Status Messages */}
           <View style={styles.statusContainer}>
-            {gameState.showLevelFeedback && !gameState.gameOver && (
-              <Text style={styles.levelFeedbackText}>
-                🎉 Level {gameState.currentLevel - 1} Complete! 🎉{"\n"}
-                Next Level: {currentConfig.colorCount} colors,{" "}
-                {currentConfig.currentSequenceLength} sequence
-              </Text>
-            )}
-            {gameState.showLevelFeedback && gameState.gameOver && (
-              <Text style={styles.levelFeedbackText}>
-                🏆 FINAL LEVEL: {gameState.currentLevel} 🏆{"\n"}
-                AMAZING PERFORMANCE!
-              </Text>
-            )}
             {gameState.showingSequence && !gameState.showLevelFeedback && (
               <Text style={styles.statusText}>
                 🧠 Watch the sequence... (Level {gameState.currentLevel})
