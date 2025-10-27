@@ -13,7 +13,7 @@
       "bundleIdentifier": "com.vukasin93.colorrusharena"
     },
     "android": {
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -21,6 +21,9 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+            "permissions": [
+        "com.google.android.gms.permission.AD_ID"
+      ],
       "package": "com.vukasin93.colorrusharena"
     },
     "web": {
