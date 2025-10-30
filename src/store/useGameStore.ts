@@ -20,8 +20,8 @@ interface GameStats {
 
 interface GameResult {
   id: string;
-  gameType: 'colorMatch' | 'reactionTap' | 'colorSnake' | 'memoryRush';
-  level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard';
+  gameType: 'colorMatch' | 'reactionTap' | 'colorSnake' | 'memoryRush' | 'colorMatchEndless';
+  level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard' | 'endless';
   score: number;
   xpEarned: number;
   date: string;
@@ -31,6 +31,7 @@ interface GameResult {
 interface GameStore {
   // Game Stats
   colorMatchStats: GameStats;
+  colorMatchEndlessStats: GameStats;
   reactionTapStats: GameStats;
   memoryRushStats: GameStats;
   totalXP: number;
@@ -57,7 +58,7 @@ interface GameStore {
   // Getters
   getTotalGamesPlayed: () => number;
   getBestOverallScore: () => number;
-  getGameStats: (gameType: 'colorMatch' | 'reactionTap' | 'memoryRush') => GameStats;
+  getGameStats: (gameType: 'colorMatch' | 'colorMatchEndless' | 'reactionTap' | 'memoryRush') => GameStats;
   isLevelUnlocked: (gameType: 'colorMatch' | 'reactionTap' | 'memoryRush', level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard') => boolean;
 }
 
@@ -86,6 +87,7 @@ export const useGameStore = create<GameStore>()(
     (set, get) => ({
       // Initial State
       colorMatchStats: initialStats,
+      colorMatchEndlessStats: initialStats,
       reactionTapStats: initialStats,
       memoryRushStats: initialStats,
       totalXP: 0,
@@ -164,10 +166,12 @@ export const useGameStore = create<GameStore>()(
 
         set((state) => {
           const gameType = result.gameType;
-          if (gameType !== 'colorMatch' && gameType !== 'reactionTap' && gameType !== 'memoryRush') return state;
+          if (gameType !== 'colorMatch' && gameType !== 'colorMatchEndless' && gameType !== 'reactionTap' && gameType !== 'memoryRush') return state;
 
           const currentStats = gameType === 'colorMatch' 
             ? state.colorMatchStats 
+            : gameType === 'colorMatchEndless'
+            ? state.colorMatchEndlessStats
             : gameType === 'reactionTap'
             ? state.reactionTapStats
             : state.memoryRushStats;
@@ -221,6 +225,8 @@ export const useGameStore = create<GameStore>()(
 
           const statsProp = gameType === 'colorMatch' 
             ? 'colorMatchStats' 
+            : gameType === 'colorMatchEndless'
+            ? 'colorMatchEndlessStats'
             : gameType === 'reactionTap'
             ? 'reactionTapStats'
             : 'memoryRushStats';
@@ -338,6 +344,8 @@ export const useGameStore = create<GameStore>()(
         const state = get();
         return gameType === 'colorMatch' 
           ? state.colorMatchStats 
+          : gameType === 'colorMatchEndless'
+          ? state.colorMatchEndlessStats
           : gameType === 'reactionTap'
           ? state.reactionTapStats
           : state.memoryRushStats;
@@ -405,6 +413,7 @@ export const useGame = () => {
     
     // Stats
     colorMatchStats: store.colorMatchStats,
+    colorMatchEndlessStats: store.colorMatchEndlessStats,
     reactionTapStats: store.reactionTapStats,
     memoryRushStats: store.memoryRushStats,
     totalXP: store.totalXP,

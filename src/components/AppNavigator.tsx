@@ -11,6 +11,7 @@ import { GameScreen } from '../screens/GameScreen';
 import { GameOverScreen } from '../screens/GameOverScreen';
 import { LeaderboardScreen } from '../screens/LeaderboardScreen';
 import { ColorMatchGame } from '../games/colorMatch/ColorMatchGame';
+import { ColorMatchEndlessGame } from '../games/colorMatch/ColorMatchEndlessGame';
 import { ReactionGame } from '../games/reactionTap/ReactionGame';
 import { MemoryRushGame } from '../games/memoryRush/MemoryRushGame';
 import { useAuth } from '../store/useAuthStore';
@@ -73,6 +74,7 @@ const AuthenticatedStack = () => (
     <Stack.Screen name="MainTabs" component={MainTabs} />
     <Stack.Screen name="GameScreen" component={GameScreen} />
     <Stack.Screen name="ColorMatchGame" component={ColorMatchGame} />
+    <Stack.Screen name="ColorMatchEndlessGame" component={ColorMatchEndlessGame} />
     <Stack.Screen name="ReactionGame" component={ReactionGame} />
     <Stack.Screen name="MemoryRushGame" component={MemoryRushGame} />
     <Stack.Screen name="GameOverScreen" component={GameOverScreen} />

@@ -38,8 +38,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   navigation,
   route,
 }) => {
-  const { gameType, score, xpEarned, level, highestLevel } = route.params;
-  const { colorMatchStats, memoryRushStats, resetCurrentGame } = useGame();
+  const { gameType, score, xpEarned = 0, level, highestLevel } = route.params;
+  const { colorMatchStats, colorMatchEndlessStats, memoryRushStats, resetCurrentGame } = useGame();
   const { user, syncUserData } = useAuth();
   // Use updateGameStats directly from Zustand store to avoid undefined errors
   const updateGameStats = useAuthStore.getState().updateGameStats;
@@ -50,6 +50,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   const gameStats =
     gameType === "colorMatch"
       ? colorMatchStats
+      : gameType === "colorMatchEndless"
+      ? colorMatchEndlessStats
       : gameType === "memoryRush"
       ? memoryRushStats
       : undefined;
@@ -164,6 +166,12 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           title: "Color Match",
           emoji: "🎨",
           color: ["#FF6B6B", "#FF3B30"] as [string, string],
+        };
+      case "colorMatchEndless":
+        return {
+          title: "Color Match Endless",
+          emoji: "∞",
+          color: ["#FF6B6B", "#FF4757"] as [string, string],
         };
       case "memoryRush":
         return {
@@ -334,10 +342,14 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                       name:
                         gameType === "colorMatch"
                           ? "ColorMatchGame"
+                          : gameType === "colorMatchEndless"
+                          ? "ColorMatchEndlessGame"
                           : gameType === "memoryRush"
                           ? "MemoryRushGame"
                           : "MemoryRushGame",
-                      params: { level: level || "easy", autoStart: true },
+                      params: gameType === "colorMatchEndless" 
+                        ? {} 
+                        : { level: level || "easy", autoStart: false },
                     },
                   ],
                 });
@@ -396,10 +408,10 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 24,
   },
   gameOverTitle: {
-    fontSize: 32,
+    fontSize: 24,
     fontFamily: "Orbitron_700Bold",
     color: "#FFFFFF",
     textAlign: "center",
@@ -409,18 +421,18 @@ const styles = StyleSheet.create({
     textShadowRadius: 15,
   },
   gameTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontFamily: "Orbitron_400Regular",
     color: "#B8B8D1",
     textAlign: "center",
   },
   scoreSection: {
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 20,
   },
   scoreContainer: {
     width: "100%",
-    padding: 30,
+    padding: 20,
     borderRadius: 20,
     alignItems: "center",
     elevation: 8,
@@ -437,7 +449,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   scoreValue: {
-    fontSize: 48,
+    fontSize: 32,
     fontFamily: "Orbitron_700Bold",
     color: "#FFFFFF",
     textShadowColor: "rgba(0,0,0,0.3)",
@@ -464,7 +476,7 @@ const styles = StyleSheet.create({
     color: "#000000",
   },
   xpSection: {
-    marginBottom: 30,
+    marginBottom: 1,
   },
   xpLabel: {
     fontSize: 16,
@@ -502,10 +514,10 @@ const styles = StyleSheet.create({
     textShadowRadius: 5,
   },
   statsSection: {
-    marginBottom: 40,
+    marginBottom: 20,
   },
   statsTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: "Orbitron_700Bold",
     color: "#FFFFFF",
     textAlign: "center",
@@ -521,13 +533,13 @@ const styles = StyleSheet.create({
     width: "48%",
     backgroundColor: "rgba(26,26,46,0.6)",
     borderRadius: 15,
-    padding: 15,
+    padding: 8,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(142,45,226,0.3)",
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 16,
     fontFamily: "Orbitron_700Bold",
     color: "#FFFFFF",
     marginBottom: 5,

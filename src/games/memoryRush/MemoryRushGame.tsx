@@ -20,7 +20,7 @@ import {
   Orbitron_900Black,
 } from "@expo-google-fonts/orbitron";
 import { useGame } from "../../store/useGameStore";
-import { logGameStart, logGameEnd } from "../../firebase/analytics";
+// import { logGameStart, logGameEnd } from "../../firebase/analytics";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
 import { ColorGrid } from "./components/ColorGrid";
@@ -465,7 +465,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
 
   // Start new game
   const handleStartGame = useCallback(async () => {
-    logGameStart("memoryRush");
+    // logGameStart("memoryRush");
     await AsyncStorage.removeItem(STORAGE_KEY);
     const initialSequence = generateSequence(1);
 
@@ -527,7 +527,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
 
   // Restart game
   const handleRestart = useCallback(() => {
-    logGameStart("memoryRush");
+    // logGameStart("memoryRush");
     const initialSequence = generateSequence(1);
     setGameState({
       sequence: initialSequence,
@@ -691,7 +691,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
               <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => {
-                  logGameEnd("memoryRush", gameState.score);
+                  // logGameEnd("memoryRush", gameState.score);
                   navigation.goBack();
                 }}
                 activeOpacity={0.7}
@@ -949,7 +949,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
                     }
                     
                     endGame(gameState.score);
-                    logGameEnd("memoryRush", gameState.score);
+                    // logGameEnd("memoryRush", gameState.score);
                     await AsyncStorage.removeItem(STORAGE_KEY);
                     navigation.replace("GameOverScreen", {
                       gameType: "memoryRush",
@@ -1012,7 +1012,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
                     }, gameState.highestLevel);
                     
                     endGame(gameState.score);
-                    logGameEnd("memoryRush", gameState.score);
+                    // logGameEnd("memoryRush", gameState.score);
                     await AsyncStorage.removeItem(STORAGE_KEY);
                     navigation.replace("GameOverScreen", {
                       gameType: "memoryRush",

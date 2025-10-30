@@ -120,11 +120,11 @@ interface ScoreEntry {
 
 export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation, route }) => {
   const { gameType } = route.params || {};
-  const { colorMatchStats, memoryRushStats } = useGame();
+  const { colorMatchStats, colorMatchEndlessStats, memoryRushStats } = useGame();
   const [firebaseScores, setFirebaseScores] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedGame, setSelectedGame] = useState<'colorMatch' | 'memoryRush'>(
+  const [selectedGame, setSelectedGame] = useState<'colorMatch' | 'memoryRush' | 'colorMatchEndless'>(
     gameType === 'memoryRush' ? 'memoryRush' : 'colorMatch'
   );
   const [selectedLevel, setSelectedLevel] = useState<'easy' | 'medium' | 'hard'>('easy');
@@ -138,7 +138,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
       setLoading(true);
     }
     try {
-      const scores = await leaderboardService.getTopPlayersByGameScore(selectedGame, 100);
+      const scores = await leaderboardService.getTopPlayersByGameScore(selectedGame as 'colorMatch' | 'memoryRush' | 'colorMatchEndless', 100);
       setFirebaseScores(scores);
     } catch (error) {
       console.error('Failed to fetch leaderboard:', error);
@@ -177,6 +177,27 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
           date: new Date().toISOString().split('T')[0],
           emoji: '🎨',
           level: `${selectedLevel === 'easy' ? '🟢' : selectedLevel === 'medium' ? '🟡' : '🔴'} ${selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)}`,
+          userId: player.uid,
+          username: player.username,
+          avatar: player.avatar,
+        }));
+      } else if (selectedGame === 'colorMatchEndless') {
+        const gameStats = 'colorMatchEndlessStats';
+        const bestScoreRanking = [...firebaseScores]
+          .filter(player => {
+            const stats = player[gameStats];
+            return stats && stats.totalGames > 0 && stats.bestScore > 0;
+          })
+          .sort((a, b) => b[gameStats].bestScore - a[gameStats].bestScore)
+          .slice(0, 100);
+
+        return bestScoreRanking.map((player, index) => ({
+          id: `endless_${player.uid}_${index}`,
+          game: 'Color Match - Endless Mode',
+          score: player[gameStats].bestScore,
+          date: new Date().toISOString().split('T')[0],
+          emoji: '♾️',
+          level: `${player[gameStats].questionsAnswered} questions answered`,
           userId: player.uid,
           username: player.username,
           avatar: player.avatar,
@@ -221,6 +242,11 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
       return allScores.length > 0 ? allScores : [
         { id: '1', game: 'Color Match', score: 0, date: '2024-01-15', emoji: '🎨', level: 'easy', userId: 'demo' },
       ];
+    } else if (selectedGame === 'colorMatchEndless') {
+      // For now, return empty array since we don't have local endless stats
+      return [
+        { id: '1', game: 'Endless Mode', score: 0, date: '2024-01-15', emoji: '♾️', level: 'endless', userId: 'demo' },
+      ];
     } else {
       const allScores: ScoreEntry[] = [
         ...memoryRushStats.gameHistory.map(game => ({
@@ -241,7 +267,6 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
   };
   
   const displayScores = getDisplayScores();
-  console.log("displayScores", displayScores)
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
     Orbitron_700Bold,
@@ -307,6 +332,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
         <View style={styles.filterTabs}>
           {[
             { key: 'colorMatch', label: 'Color Match', emoji: '🎨' },
+            { key: 'colorMatchEndless', label: 'Endless Mode', emoji: '♾️' },
             { key: 'memoryRush', label: 'Memory Rush', emoji: '🧠' },
           ].map((game) => (
             <TouchableOpacity
@@ -338,7 +364,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
             style={styles.statCardGradient}
           >
             <Text style={styles.statNumber}>
-              {selectedGame === 'colorMatch' ? colorMatchStats.bestScore : memoryRushStats.bestScore}
+              {selectedGame === 'colorMatch' ? colorMatchStats.bestScore : selectedGame === "colorMatchEndless" ? colorMatchEndlessStats.bestScore : memoryRushStats.bestScore}
             </Text>
             <Text style={styles.statLabel}>Best Score</Text>
           </LinearGradient>
@@ -628,7 +654,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(26, 26, 46, 0.6)',
     borderRadius: 20,
     paddingVertical: 10,
-    paddingHorizontal: 15,
+    paddingHorizontal: 10,
     marginHorizontal: 5,
     alignItems: 'center',
     borderWidth: 1,

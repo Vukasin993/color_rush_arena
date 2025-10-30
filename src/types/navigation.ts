@@ -10,12 +10,14 @@ export type RootStackParamList = {
     autoStart?: boolean;
     continueSaved?: boolean;
   };
+  ColorMatchEndlessGame: undefined;
   GameOverScreen: {
-    gameType: 'colorMatch' | 'reactionTap' | 'colorSnake' | 'memoryRush';
-    level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard' | number;
+    gameType: 'colorMatch' | 'reactionTap' | 'colorSnake' | 'memoryRush' | 'colorMatchEndless';
+    level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard' | 'endless' | number;
     score: number;
-    xpEarned: number;
+    xpEarned?: number;
     highestLevel?: number;
+    questionsAnswered?: number;
   };
 };
 

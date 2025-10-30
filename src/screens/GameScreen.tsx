@@ -16,7 +16,7 @@ import {
   Orbitron_700Bold,
 } from "@expo-google-fonts/orbitron";
 import { useGame } from "../store/useGameStore";
-import { logGameStart } from "../firebase/analytics";
+// import { logGameStart } from "../firebase/analytics";
 import { CustomModal } from "../components/CustomModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -53,9 +53,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
     Orbitron_700Bold,
   });
 
-  useEffect(() => {
-    if (gameType && gameType !== "unknown") logGameStart(gameType);
-  }, [gameType]);
+  // useEffect(() => {
+  //   if (gameType && gameType !== "unknown") logGameStart(gameType);
+  // }, [gameType]);
 
   const handleAdReward = (level: "easy" | "medium" | "hard") => {
     setSelectedLevel(level);
@@ -85,7 +85,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
           title: "Color Match",
           emoji: "🎨",
           description: "Test your color recognition skills!",
-          instructions: "Tap the color that matches the word. The faster you answer, the higher your score!",
+          instructions: "Choose Endless Mode for unlimited play with reaction-based scoring, or pick a difficulty level for timed challenges!",
         };
       case "reactionTap":
         return {
@@ -151,6 +151,31 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
           <Text style={styles.instructionsTitle}>How to Play:</Text>
           <Text style={styles.instructionsText}>{gameInfo.instructions}</Text>
         </View>
+
+        {/* Endless Mode for Color Match */}
+        {gameType === "colorMatch" && (
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              activeOpacity={0.8}
+              onPress={() => {
+                navigation.navigate("ColorMatchEndlessGame");
+              }}
+            >
+              <LinearGradient
+                colors={["#FF6B6B", "#FF4757"]}
+                style={styles.actionButtonGradient}
+              >
+                <Text style={styles.actionButtonText}>
+                  ∞ ENDLESS MODE
+                </Text>
+                <Text style={[styles.actionButtonText, { fontSize: 12, opacity: 0.9, marginTop: 4 }]}>
+                  React fast for max points!
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Level Selection */}
         {(gameType === "colorMatch" || gameType === "reactionTap") && (
@@ -467,11 +492,11 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   gameEmoji: {
-    fontSize: 80,
+    fontSize: 52,
     marginBottom: 20,
   },
   gameTitle: {
-    fontSize: 32,
+    fontSize: 24,
     fontFamily: "Orbitron_700Bold",
     color: "#FFFFFF",
     textAlign: "center",
@@ -481,7 +506,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 15,
   },
   gameDescription: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: "Orbitron_400Regular",
     color: "#B8B8D1",
     textAlign: "center",
@@ -523,6 +548,7 @@ const styles = StyleSheet.create({
   },
   buttonsContainer: {
     gap: 15,
+    marginBottom: 30,
   },
   actionButton: {
     borderRadius: 25,

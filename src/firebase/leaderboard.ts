@@ -23,6 +23,13 @@ export interface LeaderboardEntry {
     mediumCompleted: number;
     hardCompleted: number;
   };
+  colorMatchEndlessStats: {
+    totalGames: number;
+    bestScore: number;
+    averageScore: number;
+    totalXP: number;
+    questionsAnswered: number;
+  };
   memoryRushStats: {
     totalGames: number;
     bestScore: number;
@@ -82,6 +89,13 @@ class LeaderboardService {
             mediumCompleted: 0,
             hardCompleted: 0,
           },
+          colorMatchEndlessStats: data.colorMatchEndlessStats || {
+            totalGames: 0,
+            bestScore: 0,
+            averageScore: 0,
+            totalXP: 0,
+            questionsAnswered: 0,
+          },
           memoryRushStats: data.memoryRushStats || {
             totalGames: 0,
             bestScore: 0,
@@ -107,7 +121,7 @@ class LeaderboardService {
 
   // Get top players by best score for specific game
   async getTopPlayersByGameScore(
-    gameType: 'colorMatch' | 'memoryRush',
+    gameType: 'colorMatch' | 'memoryRush' | 'colorMatchEndless',
     limitCount: number = 50
   ): Promise<LeaderboardEntry[]> {
     try {
@@ -141,6 +155,13 @@ class LeaderboardService {
               easyCompleted: 0,
               mediumCompleted: 0,
               hardCompleted: 0,
+            },
+            colorMatchEndlessStats: data.colorMatchEndlessStats || {
+              totalGames: 0,
+              bestScore: 0,
+              averageScore: 0,
+              totalXP: 0,
+              questionsAnswered: 0,
             },
             memoryRushStats: data.memoryRushStats || {
               totalGames: 0,

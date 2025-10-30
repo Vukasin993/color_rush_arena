@@ -16,7 +16,7 @@ interface AuthState {
   deleteAccount: () => Promise<void>;
   updateUsername: (newUsername: string) => Promise<void>;
   updateGameStats: (
-    gameType: 'colorMatch' | 'memoryRush',
+    gameType: 'colorMatch' | 'memoryRush' | 'colorMatchEndless',
     level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard',
     score: number,
     xpEarned: number,
@@ -136,7 +136,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       updateGameStats: async (
-        gameType: 'colorMatch' | 'memoryRush',
+        gameType: 'colorMatch' | 'memoryRush' | 'colorMatchEndless',
         level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard',
         score: number,
         xpEarned: number,
@@ -148,6 +148,15 @@ export const useAuthStore = create<AuthState>()(
           // Pick correct stats object
           let gameStats;
           if (gameType === 'colorMatch') gameStats = user.colorMatchStats;
+          else if (gameType === 'colorMatchEndless') {
+            gameStats = user.colorMatchEndlessStats || {
+              totalGames: 0,
+              bestScore: 0,
+              averageScore: 0,
+              totalXP: 0,
+              questionsAnswered: 0,
+            };
+          }
           else if (gameType === 'memoryRush') gameStats = user.memoryRushStats;
           else throw new Error('Invalid gameType');
 
@@ -160,12 +169,21 @@ export const useAuthStore = create<AuthState>()(
               bestScore: gameStats.bestScore || 0,
               averageScore: gameStats.averageScore || 0,
               totalXP: gameStats.totalXP || 0,
-              easyCompleted: gameStats.easyCompleted || 0,
-              mediumCompleted: gameStats.mediumCompleted || 0,
-              hardCompleted: gameStats.hardCompleted || 0,
+              easyCompleted: (gameStats as any).easyCompleted || 0,
+              mediumCompleted: (gameStats as any).mediumCompleted || 0,
+              hardCompleted: (gameStats as any).hardCompleted || 0,
               extremeCompleted: (gameStats as any).extremeCompleted || 0,
               extraHardCompleted: (gameStats as any).extraHardCompleted || 0,
-              highestLevel: typeof highestLevel === 'number' ? Math.max(gameStats.highestLevel || 1, highestLevel) : (gameStats.highestLevel || 1),
+              highestLevel: typeof highestLevel === 'number' ? Math.max((gameStats as any).highestLevel || 1, highestLevel) : ((gameStats as any).highestLevel || 1),
+            };
+          } else if (gameType === 'colorMatchEndless') {
+            safeStats = {
+              ...gameStats,
+              totalGames: gameStats.totalGames || 0,
+              bestScore: gameStats.bestScore || 0,
+              averageScore: gameStats.averageScore || 0,
+              totalXP: gameStats.totalXP || 0,
+              questionsAnswered: (gameStats as any).questionsAnswered || 0,
             };
           } else {
             safeStats = {
@@ -174,9 +192,9 @@ export const useAuthStore = create<AuthState>()(
               bestScore: gameStats.bestScore || 0,
               averageScore: gameStats.averageScore || 0,
               totalXP: gameStats.totalXP || 0,
-              easyCompleted: gameStats.easyCompleted || 0,
-              mediumCompleted: gameStats.mediumCompleted || 0,
-              hardCompleted: gameStats.hardCompleted || 0,
+              easyCompleted: (gameStats as any).easyCompleted || 0,
+              mediumCompleted: (gameStats as any).mediumCompleted || 0,
+              hardCompleted: (gameStats as any).hardCompleted || 0,
             };
           }
 

@@ -20,7 +20,7 @@ import {
   Orbitron_700Bold,
 } from '@expo-google-fonts/orbitron';
 import { useAuth } from '../store/useAuthStore';
-import { logRegistration } from '../firebase/analytics';
+// import { logRegistration } from '../firebase/analytics';
 import { userService } from '../firebase/userService';
 
 export const SignInScreen: React.FC = () => {
@@ -37,7 +37,7 @@ export const SignInScreen: React.FC = () => {
     try {
       setIsCreatingAccount(true);
       await login();
-      if (user?.uid) logRegistration(user.uid);
+      // if (user?.uid) logRegistration(user.uid);
     } catch (error: any) {
       Alert.alert(
         'Account Creation Failed',
@@ -68,7 +68,7 @@ export const SignInScreen: React.FC = () => {
     try {
       setIsCreatingAccount(true);
       await login(customUsername.trim());
-      if (user?.uid) logRegistration(user.uid);
+      // if (user?.uid) logRegistration(user.uid);
     } catch (error: any) {
       Alert.alert(
         'Account Creation Failed',

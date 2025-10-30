@@ -31,6 +31,15 @@ export interface UserProfile {
     hardCompleted: number;
   };
   
+  // Color Match Endless Stats
+  colorMatchEndlessStats: {
+    totalGames: number;
+    bestScore: number;
+    averageScore: number;
+    totalXP: number;
+    questionsAnswered: number;
+  };
+  
   // Reaction Tap Stats
   reactionTapStats: {
     totalGames: number;
@@ -119,6 +128,13 @@ class UserService {
         easyCompleted: 0,
         mediumCompleted: 0,
         hardCompleted: 0,
+      },
+      colorMatchEndlessStats: {
+        totalGames: 0,
+        bestScore: 0,
+        averageScore: 0,
+        totalXP: 0,
+        questionsAnswered: 0,
       },
       memoryRushStats: {
         totalGames: 0,
@@ -211,6 +227,18 @@ class UserService {
         // Convert date strings back to Date objects
         user.createdAt = new Date(user.createdAt);
         user.lastLoginAt = new Date(user.lastLoginAt);
+        
+        // Migration: Add colorMatchEndlessStats if missing
+        if (!user.colorMatchEndlessStats) {
+          user.colorMatchEndlessStats = {
+            totalGames: 0,
+            bestScore: 0,
+            averageScore: 0,
+            totalXP: 0,
+            questionsAnswered: 0,
+          };
+        }
+        
         return user;
       }
       return null;
@@ -312,7 +340,7 @@ class UserService {
   // Update game statistics
   async updateGameStats(
     uid: string, 
-    gameType: 'colorMatch' | 'reactionTap' | 'memoryRush',
+    gameType: 'colorMatch' | 'reactionTap' | 'memoryRush' | 'colorMatchEndless',
     level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard',
     score: number,
     xpEarned: number,
@@ -334,6 +362,8 @@ class UserService {
 
       const gameStats = gameType === 'colorMatch' 
         ? currentUser.colorMatchStats 
+        : gameType === 'colorMatchEndless'
+        ? currentUser.colorMatchEndlessStats
         : gameType === 'reactionTap' 
         ? currentUser.reactionTapStats
         : currentUser.memoryRushStats;
@@ -346,22 +376,40 @@ class UserService {
       }
       
       // Update game stats
-      let updatedGameStats: any = {
-        ...gameStats,
-        totalGames: gameStats.totalGames + 1,
-        bestScore: Math.max(gameStats.bestScore, score),
-        averageScore: Math.round(
-          (gameStats.averageScore * gameStats.totalGames + score) / (gameStats.totalGames + 1)
-        ),
-        totalXP: gameStats.totalXP + xpEarned,
-        [`${level === 'extra-hard' ? 'extraHard' : level}Completed`]: gameStats[`${level === 'extra-hard' ? 'extraHard' : level}Completed` as keyof typeof gameStats] + 1,
-      };
-      // Dodaj highestLevel za memoryRush
-      if (gameType === 'memoryRush' && typeof highestLevel === 'number') {
-        updatedGameStats.highestLevel = Math.max(
-          (gameStats as UserProfile['memoryRushStats']).highestLevel || 1,
-          highestLevel
-        );
+      let updatedGameStats: any;
+      
+      if (gameType === 'colorMatchEndless') {
+        // Endless mode doesn't have level-based completion
+        updatedGameStats = {
+          ...gameStats,
+          totalGames: gameStats.totalGames + 1,
+          bestScore: Math.max(gameStats.bestScore, score),
+          averageScore: Math.round(
+            (gameStats.averageScore * gameStats.totalGames + score) / (gameStats.totalGames + 1)
+          ),
+          totalXP: gameStats.totalXP + xpEarned,
+          questionsAnswered: (gameStats as any).questionsAnswered + 1,
+        };
+      } else {
+        // Level-based games (colorMatch, reactionTap, memoryRush)
+        updatedGameStats = {
+          ...gameStats,
+          totalGames: gameStats.totalGames + 1,
+          bestScore: Math.max(gameStats.bestScore, score),
+          averageScore: Math.round(
+            (gameStats.averageScore * gameStats.totalGames + score) / (gameStats.totalGames + 1)
+          ),
+          totalXP: gameStats.totalXP + xpEarned,
+          [`${level === 'extra-hard' ? 'extraHard' : level}Completed`]: gameStats[`${level === 'extra-hard' ? 'extraHard' : level}Completed` as keyof typeof gameStats] + 1,
+        };
+        
+        // Add highestLevel for memoryRush
+        if (gameType === 'memoryRush' && typeof highestLevel === 'number') {
+          updatedGameStats.highestLevel = Math.max(
+            (gameStats as UserProfile['memoryRushStats']).highestLevel || 1,
+            highestLevel
+          );
+        }
       }
 
       console.log('🔄 Updated game stats:', JSON.stringify(updatedGameStats, null, 2));
