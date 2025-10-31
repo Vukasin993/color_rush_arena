@@ -20,6 +20,7 @@ import {
   Orbitron_900Black,
 } from "@expo-google-fonts/orbitron";
 import { useGame } from "../../store/useGameStore";
+import { useNetwork } from "../../context/NetworkContext";
 // import { logGameStart, logGameEnd } from "../../firebase/analytics";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
@@ -144,6 +145,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
 }) => {
   const { autoStart = false, continueSaved = false } = route.params || {};
   const { startGame, updateScore, endGame, addGameResult, memoryRushStats } = useGame();
+  const { isConnected, isInternetReachable } = useNetwork();
 
   const [gameStarted, setGameStarted] = useState(false);
 
@@ -182,6 +184,17 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   });
 
   const STORAGE_KEY = "@memory_rush_saved_game";
+  
+  // Exit game when internet connection is lost
+  useEffect(() => {
+    const hasInternet = isConnected && (isInternetReachable === null || isInternetReachable === true);
+    
+    if (gameStarted && !hasInternet) {
+      console.log('⚠️ Internet lost during game - Exiting to home...');
+      navigation.navigate('MainTabs');
+    }
+  }, [isConnected, isInternetReachable, gameStarted, navigation]);
+  
   // Load saved game if requested
   useEffect(() => {
     if (continueSaved) {
@@ -198,7 +211,7 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
 
   const handlePauseAndSave = useCallback(async () => {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
-  navigation.navigate("MainTabs", { screen: "HomeScreen" });
+  navigation.navigate("MainTabs");
   }, [gameState, navigation]);
 
   // Generate sequence for current level

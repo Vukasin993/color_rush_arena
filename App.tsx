@@ -4,6 +4,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AppNavigator } from './src/components/AppNavigator';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { NetworkProvider } from './src/context/NetworkContext';
+import { NetworkGuard } from './src/components/NetworkGuard';
 import { userService } from './src/firebase/userService';
 import { useAuthStore } from './src/store/useAuthStore';
 
@@ -69,10 +71,22 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <SafeAreaProvider>
-        <StatusBar style="light" backgroundColor="#0F0F1B" />
-        <AppNavigator />
-      </SafeAreaProvider>
+      <NetworkProvider>
+        <SafeAreaProvider>
+          <StatusBar style="light" backgroundColor="#0F0F1B" />
+          <NetworkGuard
+            onConnectionLost={() => {
+              console.log('🔴 Game paused - No internet connection');
+              // Muzika će nastaviti, ali igre će biti pauzirane preko modala
+            }}
+            onConnectionRestored={() => {
+              console.log('🟢 Connection restored - Game can continue');
+            }}
+          >
+            <AppNavigator />
+          </NetworkGuard>
+        </SafeAreaProvider>
+      </NetworkProvider>
     </ErrorBoundary>
   );
 }

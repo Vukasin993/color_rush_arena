@@ -26,6 +26,7 @@ import {
   Orbitron_900Black,
 } from '@expo-google-fonts/orbitron';
 import { useGame } from '../../store/useGameStore';
+import { useNetwork } from '../../context/NetworkContext';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 
@@ -93,6 +94,7 @@ const PENALTY_MS = 100;
 export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation, route }) => {
   const { level = 'easy', autoStart = false, bonusTime = 0 } = route.params || {};
   const { startGame, endGame, updateScore } = useGame();
+  const { isConnected, isInternetReachable } = useNetwork();
   const levelConfig = getLevelConfig(level);
   const TOTAL_ROUNDS = BASE_ROUNDS + getBonusRounds(bonusTime);
   
@@ -120,6 +122,26 @@ export const ReactionGame: React.FC<ReactionGameProps> = ({ navigation, route })
     Orbitron_700Bold,
     Orbitron_900Black,
   });
+
+  // Exit game when internet connection is lost
+  useEffect(() => {
+    const hasInternet = isConnected && (isInternetReachable === null || isInternetReachable === true);
+    
+    if (gameStarted && !hasInternet) {
+      console.log('⚠️ Internet lost during game - Exiting to home...');
+      navigation.navigate('MainTabs');
+    }
+  }, [isConnected, isInternetReachable, gameStarted, navigation]);
+
+  // Exit game when internet connection is lost
+  useEffect(() => {
+    const hasInternet = isConnected && (isInternetReachable === null || isInternetReachable === true);
+    
+    if (gameStarted && !hasInternet) {
+      console.log('⚠️ Internet lost during game - Exiting to home...');
+      navigation.navigate('MainTabs');
+    }
+  }, [isConnected, isInternetReachable, gameStarted, navigation]);
 
   // Cleanup timeouts
   const clearTimeouts = useCallback(() => {

@@ -14,6 +14,7 @@ import Animated, {
   cancelAnimation, // ✅
 } from "react-native-reanimated";
 import { useGame } from "../../store/useGameStore";
+import { useNetwork } from "../../context/NetworkContext";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
 
@@ -93,6 +94,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
   const { level = "easy", autoStart = false, bonusTime = 0 } = route.params || {};
   const GAME_DURATION = getGameDuration(level, bonusTime);
   const { currentGame, startGame, endGame, updateScore } = useGame();
+  const { isConnected, isInternetReachable } = useNetwork();
 
   const COLORS = getColorsForLevel(level);
   const [currentWord, setCurrentWord] = useState<ColorData>(COLORS[0]);
@@ -133,6 +135,16 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
       intervalRef.current = null;
     }
   };
+
+  // Exit game when internet connection is lost
+  useEffect(() => {
+    const hasInternet = isConnected && (isInternetReachable === null || isInternetReachable === true);
+    
+    if (gameStarted && !hasInternet) {
+      console.log('⚠️ Internet lost during game - Exiting to home...');
+      navigation.navigate('MainTabs');
+    }
+  }, [isConnected, isInternetReachable, gameStarted, navigation]);
 
   const handleResume = () => {
     setShowPauseModal(false);
