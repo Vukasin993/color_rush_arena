@@ -19,6 +19,7 @@ import {
   Orbitron_900Black,
 } from "@expo-google-fonts/orbitron";
 import { useAuth } from "../store/useAuthStore";
+import { AdBanner } from "../components/AdBanner";
 // import { logAppOpen } from "../firebase/analytics";
 import Avatar1 from "../../assets/svg/1.svg";
 import Avatar2 from "../../assets/svg/2.svg";
@@ -223,6 +224,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           />
         </View>
       </ScrollView>
+      
+      {/* Banner Ad at bottom */}
+      <View style={styles.adContainer}>
+        <AdBanner />
+      </View>
+      
       <CustomModal
         visible={showExitModal}
         onClose={() => setShowExitModal(false)}
@@ -417,5 +424,12 @@ const styles = StyleSheet.create({
     fontFamily: "Orbitron_700Bold",
     color: "#FFB800",
     letterSpacing: 1,
+  },
+  adContainer: {
+    backgroundColor: "#0F0F1B",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(142, 45, 226, 0.3)",
   },
 });

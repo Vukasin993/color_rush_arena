@@ -21,6 +21,8 @@ import {
 } from "@expo-google-fonts/orbitron";
 import { useGame } from "../../store/useGameStore";
 import { useNetwork } from "../../context/NetworkContext";
+import { useInterstitialAd } from "../../hooks/useInterstitialAd";
+import { useRewardedAd } from "../../hooks/useRewardedAd";
 // import { logGameStart, logGameEnd } from "../../firebase/analytics";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
@@ -146,6 +148,8 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   const { autoStart = false, continueSaved = false } = route.params || {};
   const { startGame, updateScore, endGame, addGameResult, memoryRushStats } = useGame();
   const { isConnected, isInternetReachable } = useNetwork();
+  const { loaded: interstitialLoaded, showAd: showInterstitialAd } = useInterstitialAd();
+  const { loaded: rewardedAdLoaded, showAd: showRewardedAd } = useRewardedAd();
 
   const [gameStarted, setGameStarted] = useState(false);
 
@@ -573,21 +577,42 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
   ]);
 
   // Watch ad to continue
-  const handleWatchAdToContinue = useCallback(() => {
-    // Simulate ad watching (you can integrate real ad SDK here)
-    setTimeout(() => {
+  const handleWatchAdToContinue = useCallback(async () => {
+    if (rewardedAdLoaded) {
+      const earned = await showRewardedAd();
+      
+      // Check if user earned reward
+      if (earned) {
+        console.log('✅ User watched the ad! Continuing game...');
+        setGameState((prev) => ({
+          ...prev,
+          gameOver: false,
+          waitingForInput: true,
+          canWatchAdToContinue: false, // Can only use once per game
+          powerUps: {
+            ...prev.powerUps,
+            adsWatched: prev.powerUps.adsWatched + 1,
+          },
+        }));
+      } else {
+        console.log('❌ User closed ad without watching - game over remains');
+        // Keep game over state - user can try again or exit
+      }
+    } else {
+      console.warn('⚠️ Rewarded ad not loaded - continuing without ad');
+      // Fallback - continue anyway
       setGameState((prev) => ({
         ...prev,
         gameOver: false,
         waitingForInput: true,
-        canWatchAdToContinue: false, // Can only use once per game
+        canWatchAdToContinue: false,
         powerUps: {
           ...prev.powerUps,
           adsWatched: prev.powerUps.adsWatched + 1,
         },
       }));
-    }, 1500); // Simulate ad duration
-  }, []);
+    }
+  }, [rewardedAdLoaded, showRewardedAd]);
 
   // Use repeat sequence power-up
   const useRepeatSequence = useCallback(() => {
@@ -964,6 +989,14 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
                     endGame(gameState.score);
                     // logGameEnd("memoryRush", gameState.score);
                     await AsyncStorage.removeItem(STORAGE_KEY);
+                    
+                    // Show interstitial ad with 15% chance
+                    const showAd = Math.random() < 0.15; // 15% chance
+                    if (showAd && interstitialLoaded) {
+                      console.log('📺 Showing interstitial ad (15% chance)');
+                      await showInterstitialAd();
+                    }
+                    
                     navigation.replace("GameOverScreen", {
                       gameType: "memoryRush",
                       score: gameState.score,

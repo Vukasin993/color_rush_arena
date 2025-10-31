@@ -32,6 +32,7 @@ import { PauseModal } from "../../components/PauseModal";
 import { CustomModal } from "../../components/CustomModal";
 import { WordDisplay } from "./components/WordDisplay";
 import { ColorButtons } from "./components/ColorButtons";
+import { useRewardedAd } from "../../hooks/useRewardedAd";
 
 type ColorMatchEndlessGameProps = NativeStackScreenProps<
   RootStackParamList,
@@ -112,6 +113,7 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
   const { addGameResult } = useGame();
   const updateGameStats = useAuthStore((state) => state.updateGameStats);
   const { isConnected, isInternetReachable } = useNetwork();
+  const { loaded: rewardedAdLoaded, showAd: showRewardedAd } = useRewardedAd();
 
   const [gameState, setGameState] = useState<GameState>({
     score: 0,
@@ -400,40 +402,58 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
   ]);
 
   // Watch ad to continue
-  const handleWatchAd = useCallback(() => {
+  const handleWatchAd = useCallback(async () => {
     setShowWatchAdModal(false);
 
-    // Calculate current game time and round to seconds
-    const now = Date.now();
-    const totalElapsedTime = now - gameStartTimeRef.current;
-    const actualPlayTime = totalElapsedTime - pausedTimeRef.current;
-    const currentTimeInSeconds = Math.floor(actualPlayTime / 1000);
+    // Show rewarded ad
+    if (rewardedAdLoaded) {
+      const earned = await showRewardedAd();
+      
+      // Check if user earned reward
+      if (earned) {
+        console.log('✅ User watched the ad! Continuing game...');
+        
+        // Calculate current game time and round to seconds
+        const now = Date.now();
+        const totalElapsedTime = now - gameStartTimeRef.current;
+        const actualPlayTime = totalElapsedTime - pausedTimeRef.current;
+        const currentTimeInSeconds = Math.floor(actualPlayTime / 1000);
 
-    // Calculate which minute we're currently in
-    const currentMinute = Math.floor(currentTimeInSeconds / 60);
+        // Calculate which minute we're currently in
+        const currentMinute = Math.floor(currentTimeInSeconds / 60);
 
-    // Update lastCheckedMinuteRef to the current minute so we continue from here
-    lastCheckedMinuteRef.current = currentMinute;
+        // Update lastCheckedMinuteRef to the current minute so we continue from here
+        lastCheckedMinuteRef.current = currentMinute;
 
-    console.log(
-      `🎬 Watched ad! Continuing from minute ${
-        currentMinute + 1
-      } (${currentTimeInSeconds}s). Required clicks: ${Math.min(
-        30 + currentMinute,
-        60
-      )}`
-    );
+        console.log(
+          `🎬 Continuing from minute ${
+            currentMinute + 1
+          } (${currentTimeInSeconds}s). Required clicks: ${Math.min(
+            30 + currentMinute,
+            60
+          )}`
+        );
 
-    // Unpause game and continue
-    setGameState((prev) => ({
-      ...prev,
-      isPaused: false,
-      wrongAnswer: false,
-    }));
+        // Unpause game and continue
+        setGameState((prev) => ({
+          ...prev,
+          isPaused: false,
+          wrongAnswer: false,
+        }));
 
-    // Continue game (simulate ad watched)
-    generateNewQuestion();
-  }, [generateNewQuestion]);
+        // Continue game
+        generateNewQuestion();
+      } else {
+        console.log('❌ User closed ad without watching - ending game');
+        // User didn't watch the ad - end game
+        handleGameOver();
+      }
+    } else {
+      console.warn('⚠️ Rewarded ad not loaded - ending game');
+      // Ad not loaded - end game
+      handleGameOver();
+    }
+  }, [rewardedAdLoaded, showRewardedAd, generateNewQuestion, handleGameOver]);
 
   // Animated styles
   const shakeStyle = useAnimatedStyle(() => ({

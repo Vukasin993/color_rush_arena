@@ -19,6 +19,7 @@ import { useGame } from "../store/useGameStore";
 // import { logGameStart } from "../firebase/analytics";
 import { CustomModal } from "../components/CustomModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRewardedAd } from "../hooks/useRewardedAd";
 
 interface GameScreenProps {
   navigation: any;
@@ -32,6 +33,7 @@ interface GameScreenProps {
 export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => {
   const gameType = route?.params?.gameType || "unknown";
   const { isLevelUnlocked } = useGame();
+  const { loaded: rewardedAdLoaded, showAd: showRewardedAd } = useRewardedAd();
 
   const [showAdModal, setShowAdModal] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<"easy" | "medium" | "hard">("easy");
@@ -62,19 +64,60 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
     setShowAdModal(true);
   };
 
-  const handleWatchAd = () => {
-    setShowAdModal(false);
-    // Simulate ad completion and navigate with bonus time
-    if (gameType === "colorMatch") {
-      navigation.navigate("ColorMatchGame", {
-        level: selectedLevel,
-        bonusTime: 5,
-      });
-    } else if (gameType === "reactionTap") {
-      navigation.navigate("ReactionGame", {
-        level: selectedLevel,
-        bonusTime: 5,
-      });
+  const handleWatchAd = async () => {
+    if (rewardedAdLoaded) {
+      const earned = await showRewardedAd();
+      
+      // Check if user earned reward
+      if (earned) {
+        console.log('✅ User watched the ad! Starting game with +5s bonus...');
+        setShowAdModal(false);
+        
+        // Navigate with bonus time after watching ad
+        if (gameType === "colorMatch") {
+          navigation.navigate("ColorMatchGame", {
+            level: selectedLevel,
+            bonusTime: 5,
+          });
+        } else if (gameType === "reactionTap") {
+          navigation.navigate("ReactionGame", {
+            level: selectedLevel,
+            bonusTime: 5,
+          });
+        }
+      } else {
+        console.log('❌ User closed ad without watching - starting without bonus');
+        setShowAdModal(false);
+        
+        // Start game without bonus if ad wasn't watched
+        if (gameType === "colorMatch") {
+          navigation.navigate("ColorMatchGame", {
+            level: selectedLevel,
+            bonusTime: 0,
+          });
+        } else if (gameType === "reactionTap") {
+          navigation.navigate("ReactionGame", {
+            level: selectedLevel,
+            bonusTime: 0,
+          });
+        }
+      }
+    } else {
+      console.warn('⚠️ Rewarded ad not loaded - starting game without bonus');
+      setShowAdModal(false);
+      
+      // Fallback - start without bonus if ad not loaded
+      if (gameType === "colorMatch") {
+        navigation.navigate("ColorMatchGame", {
+          level: selectedLevel,
+          bonusTime: 0,
+        });
+      } else if (gameType === "reactionTap") {
+        navigation.navigate("ReactionGame", {
+          level: selectedLevel,
+          bonusTime: 0,
+        });
+      }
     }
   };
 

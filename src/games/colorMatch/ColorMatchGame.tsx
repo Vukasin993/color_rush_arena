@@ -15,6 +15,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useGame } from "../../store/useGameStore";
 import { useNetwork } from "../../context/NetworkContext";
+import { useInterstitialAd } from "../../hooks/useInterstitialAd";
+import { useRewardedAd } from "../../hooks/useRewardedAd";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
 
@@ -95,6 +97,8 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
   const GAME_DURATION = getGameDuration(level, bonusTime);
   const { currentGame, startGame, endGame, updateScore } = useGame();
   const { isConnected, isInternetReachable } = useNetwork();
+  const { loaded: interstitialLoaded, showAd: showInterstitialAd } = useInterstitialAd();
+  const { loaded: rewardedAdLoaded, showAd: showRewardedAd } = useRewardedAd();
 
   const COLORS = getColorsForLevel(level);
   const [currentWord, setCurrentWord] = useState<ColorData>(COLORS[0]);
@@ -163,13 +167,22 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
     }
   };
 
-  const handleWatchAd = () => {
-    // Simulate watching an ad
-    console.log('Watching ad to resume game...');
-    // In a real app, you would integrate with an ad network here
-    setTimeout(() => {
-      handleResume();
-    }, 1000); // Simulate ad duration
+  const handleWatchAd = async () => {
+    if (rewardedAdLoaded) {
+      const earned = await showRewardedAd();
+      
+      // Check if user earned reward
+      if (earned) {
+        console.log('✅ User watched the ad! Resuming game...');
+        handleResume();
+      } else {
+        console.log('❌ User closed ad without watching - staying paused');
+        // Keep game paused - user can try again or exit
+      }
+    } else {
+      console.warn('⚠️ Rewarded ad not loaded - resuming without ad');
+      handleResume(); // Fallback - resume anyway
+    }
   };
 
   const handleExitGame = () => {
@@ -185,7 +198,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
     navigation.goBack();
   };
 
-  const handleGameOver = useCallback(() => {
+  const handleGameOver = useCallback(async () => {
     if (!gameStarted) return;
     
     // Clear any ongoing intervals
@@ -200,6 +213,13 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
     setGameStarted(false);
     endGame(score);
     
+    // Show interstitial ad with 15% chance
+    const showAd = Math.random() < 0.15; // 15% chance
+    if (showAd && interstitialLoaded) {
+      console.log('📺 Showing interstitial ad (15% chance)');
+      await showInterstitialAd();
+    }
+    
     console.log('✅ GameOver - navigating with:', { gameType: 'colorMatch', level, score, xpEarned });
     
     navigation.replace('GameOverScreen', {
@@ -208,7 +228,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
       score,
       xpEarned,
     });
-  }, [gameStarted, currentGame.score, level, endGame, navigation]);
+  }, [gameStarted, currentGame.score, level, endGame, navigation, interstitialLoaded, showInterstitialAd]);
 
   const handleStartGame = useCallback(() => {
     setGameStarted(true);

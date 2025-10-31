@@ -8,6 +8,7 @@ import { NetworkProvider } from './src/context/NetworkContext';
 import { NetworkGuard } from './src/components/NetworkGuard';
 import { userService } from './src/firebase/userService';
 import { useAuthStore } from './src/store/useAuthStore';
+import { initializeAdMob } from './src/services/admob';
 
 export default function App() {
   const musicEnabled = useAuthStore((state) => state.musicEnabled);
@@ -23,6 +24,7 @@ export default function App() {
   useEffect(() => {
     console.log('🚀 App initializing...');
     userService.initializeAuth();
+    initializeAdMob();
   }, []);
 
   useEffect(() => {
