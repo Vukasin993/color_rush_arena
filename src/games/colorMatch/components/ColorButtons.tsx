@@ -12,11 +12,13 @@ interface ColorData {
 interface ColorButtonsProps {
   colors: ColorData[];
   onColorPress: (color: ColorData) => void;
+  isEndless?: boolean;
 }
 
 export const ColorButtons: React.FC<ColorButtonsProps> = ({
   colors,
   onColorPress,
+  isEndless = false,
 }) => {
   const [fontsLoaded] = useFonts({
     Orbitron_700Bold,
@@ -27,12 +29,19 @@ export const ColorButtons: React.FC<ColorButtonsProps> = ({
   return (
     <View style={styles.buttonsContainer}>
       {colors.map((color) => (
-                <TouchableOpacity
+        <TouchableOpacity
           key={color.name}
           style={[
             styles.colorButton,
             {
-              width: colors?.length === 6 ? "45%" : colors?.length > 6 ? "30%" : colors?.length > 4 ? "35%" : "48%",
+              width:
+                colors?.length === 6
+                  ? isEndless ? "35%" : "45%"
+                  : colors?.length > 6
+                  ? "30%"
+                  : colors?.length > 4
+                  ? "35%"
+                  : "48%",
             },
           ]}
           onPress={() => onColorPress(color)}
@@ -48,12 +57,41 @@ export const ColorButtons: React.FC<ColorButtonsProps> = ({
                 styles.colorButtonInner,
                 {
                   backgroundColor: color.value,
-                  width: colors?.length === 6 ? 30 : colors?.length > 6 ? 20 : colors?.length > 4 ? 24 : 40,
-                  height: colors?.length === 6 ? 30 : colors?.length > 6 ? 20 : colors?.length > 4 ? 24 : 40,
+                  width:
+                    colors?.length === 6
+                      ? 30
+                      : colors?.length > 6
+                      ? 20
+                      : colors?.length > 4
+                      ? 24
+                      : 40,
+                  height:
+                    colors?.length === 6
+                      ? 30
+                      : colors?.length > 6
+                      ? 20
+                      : colors?.length > 4
+                      ? 24
+                      : 40,
                 },
               ]}
             />
-            <Text style={[styles.colorButtonText, { color: color.textColor, fontSize: colors?.length === 6 ? 14 : colors?.length > 6 ? 10 : colors?.length > 4 ? 12 : 16 }]}>
+            <Text
+              style={[
+                styles.colorButtonText,
+                {
+                  color: color.textColor,
+                  fontSize:
+                    colors?.length === 6
+                      ? 14
+                      : colors?.length > 6
+                      ? 10
+                      : colors?.length > 4
+                      ? 12
+                      : 16,
+                },
+              ]}
+            >
               {color.name}
             </Text>
           </LinearGradient>

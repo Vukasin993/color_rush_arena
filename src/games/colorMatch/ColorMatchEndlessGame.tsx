@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -59,11 +59,12 @@ interface GameState {
   currentColors: ColorData[];
   gameStarted: boolean;
   gameOver: boolean;
-  isPaused: false;
+  isPaused: boolean;
   showingWord: boolean;
   lastReactionTime: number;
   reactionFeedback: string;
   startTime: number;
+  wrongAnswer: boolean;
 }
 
 const getScoreForReactionTime = (
@@ -72,13 +73,13 @@ const getScoreForReactionTime = (
   if (reactionTime <= 500) {
     return { score: 100, feedback: "Lightning! ⚡" };
   } else if (reactionTime <= 1000) {
-    return { score: 75, feedback: "Fast! 🔥" };
+    return { score: 80, feedback: "Fast! 🔥" };
   } else if (reactionTime <= 1500) {
     return { score: 50, feedback: "Good! ⭐" };
   } else if (reactionTime <= 2000) {
-    return { score: 30, feedback: "OK 👍" };
+    return { score: 20, feedback: "OK 👍" };
   } else {
-    return { score: 15, feedback: "Slow 💤" };
+    return { score: 5, feedback: "Slow 💤" };
   }
 };
 
@@ -122,10 +123,22 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
     lastReactionTime: 0,
     reactionFeedback: "",
     startTime: 0,
+    wrongAnswer: false,
   });
 
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [showWatchAdModal, setShowWatchAdModal] = useState(false);
+
+  // Anti-slow play mechanism
+  const MIN_QPM = 30; // Minimum 30 pitanja po minuti (1 svake 2 sekunde)
+  const gameStartTimeRef = useRef(Date.now());
+  const pausedTimeRef = useRef(0); // Ukupno vreme pauze
+  const pauseStartTimeRef = useRef(0); // Kada je started pause
+
+  // Tracking klikova sa timestamps
+  const clickTimestampsRef = useRef<number[]>([]);
+  const [currentGameTime, setCurrentGameTime] = useState(0); // Vreme u sekundama
+  const lastCheckedMinuteRef = useRef(-1); // Track koji minut smo poslednji put proverili
 
   // Animation values
   const shakeAnimation = useSharedValue(0);
@@ -136,6 +149,75 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
     Orbitron_400Regular,
     Orbitron_700Bold,
   });
+
+  // Reset game start time when game starts
+  useEffect(() => {
+    if (gameState.gameStarted && !gameState.gameOver) {
+      gameStartTimeRef.current = Date.now();
+    }
+  }, [gameState.gameStarted, gameState.gameOver]);
+
+  // Game timer - updating every second
+  // --- ONE CENTRAL GAME LOOP ---
+  // Ovaj interval proverava vreme i tempo, sve u jednom ciklusu
+  useEffect(() => {
+    if (!gameState.gameStarted || gameState.gameOver || gameState.isPaused)
+      return;
+
+    const loop = setInterval(() => {
+      const now = Date.now();
+      const totalElapsedTime = now - gameStartTimeRef.current;
+      const actualPlayTime = totalElapsedTime - pausedTimeRef.current;
+      const timeInSeconds = Math.floor(actualPlayTime / 1000);
+      setCurrentGameTime(timeInSeconds);
+
+      // --- 1️⃣ Izračunaj trenutni minut igre ---
+      const currentMinute = Math.floor(timeInSeconds / 60); // 0 = prvi minut, 1 = drugi, itd.
+
+      // --- 5️⃣ Kada minut istekne, proveri da li je korisnik ispunio uslov ---
+      // Proveri samo ako je prošao minut i nismo ga već proverili
+      if (currentMinute > lastCheckedMinuteRef.current && timeInSeconds >= 60) {
+        // Proveri prethodni minut (onaj koji se upravo završio)
+        const completedMinute = currentMinute - 1;
+        const minuteStartTime = gameStartTimeRef.current + completedMinute * 60000;
+        const minuteEndTime = minuteStartTime + 60000;
+        const minuteClicks = clickTimestampsRef.current.filter(
+          (t) => t >= minuteStartTime && t < minuteEndTime
+        );
+        // Povećavaj za 1 svaki minut, max 60
+        const minuteRequiredClicks = Math.min(30 + completedMinute, 60);
+
+        console.log(
+          `🔍 Checking completed minute ${completedMinute + 1}: ${minuteClicks.length}/${minuteRequiredClicks} clicks`
+        );
+
+        if (minuteClicks.length < minuteRequiredClicks) {
+          console.log(
+            `⚠️ SLOW PLAY! Only ${minuteClicks.length}/${minuteRequiredClicks} clicks in minute ${completedMinute + 1}`
+          );
+          
+          // Mark this minute as checked
+          lastCheckedMinuteRef.current = currentMinute;
+          
+          // Pause game and show modal
+          setGameState((prev) => ({
+            ...prev,
+            wrongAnswer: false,
+            isPaused: true, // Pauziramo igru dok se prikazuje modal
+          }));
+          setShowWatchAdModal(true);
+        } else {
+          console.log(
+            `✅ Minute ${completedMinute + 1} PASSED! (${minuteClicks.length}/${minuteRequiredClicks})`
+          );
+          // Mark this minute as checked
+          lastCheckedMinuteRef.current = currentMinute;
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(loop);
+  }, [gameState.gameStarted, gameState.gameOver, gameState.isPaused]);
 
   // Generate new question
   const generateNewQuestion = useCallback(() => {
@@ -153,10 +235,20 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
   // Start game
   const startGame = useCallback(() => {
     // logGameStart("colorMatchEndless");
+
+    // Reset click tracking
+    clickTimestampsRef.current = [];
+    gameStartTimeRef.current = Date.now();
+    pausedTimeRef.current = 0;
+    setCurrentGameTime(0);
+    lastCheckedMinuteRef.current = -1; // Reset checked minutes
+
     setGameState((prev) => ({
       ...prev,
       gameStarted: true,
       gameOver: false,
+      isPaused: false,
+      wrongAnswer: false,
       score: 0,
       questionsAnswered: 0,
     }));
@@ -169,7 +261,17 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
       if (!gameState.gameStarted || gameState.gameOver || gameState.isPaused)
         return;
 
-      const reactionTime = Date.now() - gameState.startTime;
+      // Track click timestamp za sliding window
+      const now = Date.now();
+      clickTimestampsRef.current.push(Date.now());
+
+      // Očisti stare klikove (starije od 5 minuta) da ne gomilamo memoriju
+      const fiveMinutesAgo = now - 300000;
+      clickTimestampsRef.current = clickTimestampsRef.current.filter(
+        (timestamp) => timestamp > fiveMinutesAgo
+      );
+
+      const reactionTime = now - gameState.startTime;
       const isCorrect = selectedColor.name === gameState.currentWord.name;
 
       if (isCorrect) {
@@ -208,6 +310,7 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
           withTiming(0, { duration: 50 })
         );
 
+        setGameState((prev) => ({ ...prev, wrongAnswer: true }));
         setShowWatchAdModal(true);
       }
     },
@@ -270,6 +373,14 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
   // Watch ad to continue
   const handleWatchAd = useCallback(() => {
     setShowWatchAdModal(false);
+    
+    // Unpause game and continue
+    setGameState((prev) => ({
+      ...prev,
+      isPaused: false,
+      wrongAnswer: false,
+    }));
+    
     // Continue game (simulate ad watched)
     generateNewQuestion();
   }, [generateNewQuestion]);
@@ -308,10 +419,16 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
             <Text style={styles.rulesText}>
               ⚡ 0-0.5s: 100 points (Lightning!)
             </Text>
-            <Text style={styles.rulesText}>🔥 0.5-1.0s: 75 points (Fast!)</Text>
+            <Text style={styles.rulesText}>🔥 0.5-1.0s: 80 points (Fast!)</Text>
             <Text style={styles.rulesText}>⭐ 1.0-1.5s: 50 points (Good)</Text>
-            <Text style={styles.rulesText}>👍 1.5-2.0s: 30 points (OK)</Text>
-            <Text style={styles.rulesText}>💤 2.0s+: 15 points (Slow)</Text>
+            <Text style={styles.rulesText}>👍 1.5-2.0s: 20 points (OK)</Text>
+            <Text style={styles.rulesText}>💤 2.0s+: 5 points (Slow)</Text>
+
+            <Text style={styles.warningTitle}>⚠️ Speed Requirement:</Text>
+            <Text style={styles.warningText}>
+              You must answer at least 30 questions per minute to continue
+              playing. Playing too slowly will end the game!
+            </Text>
           </View>
 
           <TouchableOpacity style={styles.startButton} onPress={startGame}>
@@ -338,7 +455,12 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
 
             <TouchableOpacity
               style={styles.pauseButton}
-              onPress={() => setShowPauseModal(true)}
+              onPress={() => {
+                // Postavi pause state i sačuvaj kada je started pause
+                setGameState((prev) => ({ ...prev, isPaused: true }));
+                pauseStartTimeRef.current = Date.now();
+                setShowPauseModal(true);
+              }}
               activeOpacity={0.8}
             >
               <Ionicons name="pause" size={24} color="#FFFFFF" />
@@ -353,7 +475,7 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
               <Text style={styles.statValue}>
                 {gameState.questionsAnswered}
               </Text>
-              <Text style={styles.statLabel}>Questions</Text>
+              <Text style={styles.statLabel}>Total Clicks</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>
@@ -363,6 +485,30 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
             </View>
           </View>
           <Animated.View style={[styles.gameArea, shakeStyle]}>
+            {/* Game Timer */}
+            <View style={styles.timerContainer}>
+              <Text style={styles.timerText}>
+                ⏱️ {Math.floor(currentGameTime / 60)}:
+                {(currentGameTime % 60).toString().padStart(2, "0")}
+              </Text>
+              <Text style={currentGameTime < 60 ? styles.warningText : styles.successText}>
+                Next 60 seconds need {Math.min(30 + Math.floor(currentGameTime / 60), 60)}+ clicks
+              </Text>
+              <Text style={styles.successText}>
+                Current minute:{" "}
+                {(() => {
+                  const currentMinute = Math.floor(currentGameTime / 60);
+                  const minuteStartTime = gameStartTimeRef.current + currentMinute * 60000;
+                  const minuteEndTime = minuteStartTime + 60000;
+                  const currentMinuteClicks = clickTimestampsRef.current.filter(
+                    (t) => t >= minuteStartTime && t < minuteEndTime
+                  ).length;
+                  return currentMinuteClicks;
+                })()}{" "}
+                clicks
+              </Text>
+            </View>
+
             <WordDisplay
               currentWord={gameState.currentWord}
               currentTextColor={gameState.currentTextColor}
@@ -372,6 +518,7 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
             <ColorButtons
               colors={gameState.currentColors}
               onColorPress={handleColorPress}
+              isEndless={true}
             />
 
             {/* Reaction Feedback */}
@@ -387,14 +534,23 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
       {/* Pause Modal */}
       <PauseModal
         visible={showPauseModal}
-        onResume={() => setShowPauseModal(false)}
+        onResume={() => {
+          // Resume igru - dodaj pauzirано vreme i nastavi
+          const pauseDuration = Date.now() - pauseStartTimeRef.current;
+          pausedTimeRef.current += pauseDuration;
+          setGameState((prev) => ({ ...prev, isPaused: false }));
+          setShowPauseModal(false);
+        }}
         onExit={() => {
           setShowPauseModal(false);
           navigation.navigate("MainTabs");
         }}
         onWatchAd={() => {
+          // Resume igru kroz "reklamu" - sačuvaj game state
+          const pauseDuration = Date.now() - pauseStartTimeRef.current;
+          pausedTimeRef.current += pauseDuration;
+          setGameState((prev) => ({ ...prev, isPaused: false }));
           setShowPauseModal(false);
-          startGame();
         }}
       />
 
@@ -402,8 +558,12 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
       <CustomModal
         visible={showWatchAdModal}
         onClose={() => {}}
-        title="Wrong Answer!"
-        message={`Your Score: ${gameState.score}\n\nWatch an ad to continue playing or end the game?`}
+        title={gameState.wrongAnswer ? "Wrong Answer!" : "Playing Too Slowly!"}
+        message={
+          gameState.wrongAnswer
+            ? `Your Score: ${gameState.score}\n\nWatch an ad to continue playing or end the game?`
+            : `Your Score: ${gameState.score}\n\nYou need at least 30 answers per minute!\n\nWatch an ad to continue playing or end the game?`
+        }
         icon="alert-circle"
         buttons={[
           {
@@ -479,7 +639,7 @@ const styles = StyleSheet.create({
     fontFamily: "Orbitron_400Regular",
     color: "#B8B8D1",
     textAlign: "center",
-    marginBottom: 40,
+    marginBottom: 24,
   },
   rulesContainer: {
     backgroundColor: "rgba(26, 26, 46, 0.6)",
@@ -503,6 +663,47 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     marginBottom: 8,
     textAlign: "left",
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontFamily: "Orbitron_700Bold",
+    color: "#FFD60A",
+    marginTop: 15,
+    marginBottom: 8,
+    textAlign: "center",
+    textShadowColor: "#FFD60A",
+    textShadowRadius: 5,
+  },
+  warningText: {
+    fontSize: 13,
+    fontFamily: "Orbitron_400Regular",
+    color: "#FFD60A",
+    marginBottom: 8,
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  timerContainer: {
+    alignItems: "center",
+    marginBottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    borderRadius: 15,
+    padding: 15,
+    marginHorizontal: 20,
+  },
+  timerText: {
+    fontSize: 24,
+    fontFamily: "Orbitron_700Bold",
+    color: "#00FFC6",
+    textAlign: "center",
+    textShadowColor: "#00FFC6",
+    textShadowRadius: 10,
+  },
+  successText: {
+    fontSize: 12,
+    fontFamily: "Orbitron_400Regular",
+    color: "#00FFC6",
+    textAlign: "center",
+    marginTop: 5,
   },
   startButton: {
     borderRadius: 25,
@@ -533,7 +734,7 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginBottom: 40,
+    marginBottom: 24,
     backgroundColor: "rgba(26, 26, 46, 0.6)",
     borderRadius: 15,
     padding: 20,
@@ -544,7 +745,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: "Orbitron_700Bold",
     color: "#FFFFFF",
     marginBottom: 5,
@@ -556,7 +757,7 @@ const styles = StyleSheet.create({
   },
   wordContainer: {
     alignItems: "center",
-    marginBottom: 60,
+    marginBottom: 24,
     backgroundColor: "rgba(26, 26, 46, 0.8)",
     borderRadius: 20,
     padding: 40,
@@ -574,7 +775,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 40,
+    marginBottom: 24,
   },
   colorButton: {
     width: "47%",
@@ -608,7 +809,7 @@ const styles = StyleSheet.create({
   gameArea: {
     flex: 1,
     justifyContent: "flex-start",
-    padding: 20,
+    paddingHorizontal: 20,
   },
   endlessHeader: {
     flexDirection: "row",
@@ -616,7 +817,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 20,
+    paddingBottom: 10,
     backgroundColor: "rgba(26, 26, 46, 0.6)",
     borderBottomWidth: 1,
     borderBottomColor: "rgba(142, 45, 226, 0.3)",
@@ -624,8 +825,8 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     gap: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 8,
   },
 });
