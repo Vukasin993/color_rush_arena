@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Vibration,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -374,6 +375,22 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
   const handleWatchAd = useCallback(() => {
     setShowWatchAdModal(false);
     
+    // Calculate current game time and round to seconds
+    const now = Date.now();
+    const totalElapsedTime = now - gameStartTimeRef.current;
+    const actualPlayTime = totalElapsedTime - pausedTimeRef.current;
+    const currentTimeInSeconds = Math.floor(actualPlayTime / 1000);
+    
+    // Calculate which minute we're currently in
+    const currentMinute = Math.floor(currentTimeInSeconds / 60);
+    
+    // Update lastCheckedMinuteRef to the current minute so we continue from here
+    lastCheckedMinuteRef.current = currentMinute;
+    
+    console.log(
+      `🎬 Watched ad! Continuing from minute ${currentMinute + 1} (${currentTimeInSeconds}s). Required clicks: ${Math.min(30 + currentMinute, 60)}`
+    );
+    
     // Unpause game and continue
     setGameState((prev) => ({
       ...prev,
@@ -410,7 +427,7 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
 
       {!gameState.gameStarted ? (
         // Start Screen
-        <View style={styles.startContainer}>
+        <ScrollView style={styles.startContainer} contentContainerStyle={{ alignItems: 'center', justifyContent: 'center'}}>
           <Text style={styles.title}>∞ ENDLESS MODE</Text>
           <Text style={styles.subtitle}>React Fast for Max Points!</Text>
 
@@ -439,7 +456,7 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
               <Text style={styles.startButtonText}>START ENDLESS</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       ) : (
         // Game Screen - Using same UI as ColorMatchGame
         <>
@@ -562,7 +579,7 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
         message={
           gameState.wrongAnswer
             ? `Your Score: ${gameState.score}\n\nWatch an ad to continue playing or end the game?`
-            : `Your Score: ${gameState.score}\n\nYou need at least 30 answers per minute!\n\nWatch an ad to continue playing or end the game?`
+            : `Your Score: ${gameState.score}\n\nYou didn't reach the required speed!\n\nWatch ad & continue or end the game?`
         }
         icon="alert-circle"
         buttons={[
@@ -572,7 +589,7 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
             onPress: handleGameOver,
           },
           {
-            text: "Watch Ad",
+            text: "Watch Ad & Continue",
             style: "primary",
             onPress: handleWatchAd,
           },
@@ -620,8 +637,6 @@ const styles = StyleSheet.create({
   },
   startContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     paddingHorizontal: 40,
   },
   title: {
@@ -658,7 +673,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   rulesText: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: "Orbitron_400Regular",
     color: "#FFFFFF",
     marginBottom: 8,
@@ -712,6 +727,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
+    marginBottom: 32
   },
   startButtonGradient: {
     paddingVertical: 18,
