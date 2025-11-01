@@ -23,30 +23,61 @@ export const TEST_AD_UNIT_IDS = {
 };
 
 // Use test ads in development, real ads in production
-const __DEV__ = process.env.NODE_ENV === 'development';
+// Note: Using TEST ads to avoid internal errors during development
+// Change to false for production release
+const USE_TEST_ADS = true; // Set to true for testing
 
 export const getAdUnitId = (adType: 'banner' | 'interstitial' | 'rewarded'): string => {
-  return __DEV__ ? TEST_AD_UNIT_IDS[adType] : AD_UNIT_IDS[adType];
+  return USE_TEST_ADS ? TEST_AD_UNIT_IDS[adType] : AD_UNIT_IDS[adType];
 };
 
+// Track initialization status
+let isAdMobInitialized = false;
+let initializationPromise: Promise<void> | null = null;
+
 // Initialize AdMob
-export const initializeAdMob = async () => {
-  try {
-    await mobileAds().initialize();
-    console.log('✅ AdMob initialized successfully');
-    
-    // Optional: Set request configuration
-    await mobileAds().setRequestConfiguration({
-      // Max Ad Content Rating
-      maxAdContentRating: MaxAdContentRating.G,
-      // Tag for under age of consent
-      tagForUnderAgeOfConsent: false,
-      // Test device IDs (add your test device IDs here)
-      testDeviceIdentifiers: ['EMULATOR'],
-    });
-  } catch (error) {
-    console.error('❌ AdMob initialization failed:', error);
+export const initializeAdMob = async (): Promise<void> => {
+  // Return existing promise if initialization is in progress
+  if (initializationPromise) {
+    return initializationPromise;
   }
+  
+  // Return immediately if already initialized
+  if (isAdMobInitialized) {
+    return Promise.resolve();
+  }
+  
+  initializationPromise = (async () => {
+    try {
+      console.log('🔄 Initializing AdMob...');
+      await mobileAds().initialize();
+      console.log('✅ AdMob initialized successfully');
+      
+      // Optional: Set request configuration
+      await mobileAds().setRequestConfiguration({
+        // Max Ad Content Rating
+        maxAdContentRating: MaxAdContentRating.G,
+        // Tag for under age of consent
+        tagForUnderAgeOfConsent: false,
+        // Test device IDs (add your test device IDs here)
+        testDeviceIdentifiers: ['EMULATOR'],
+      });
+      
+      isAdMobInitialized = true;
+      console.log('✅ AdMob configuration set');
+    } catch (error) {
+      console.error('❌ AdMob initialization failed:', error);
+      initializationPromise = null; // Allow retry
+      throw error;
+    }
+  })();
+  
+  return initializationPromise;
+};
+
+// Check if AdMob is initialized
+export const isAdMobReady = (): boolean => {
+  return isAdMobInitialized;
 };
 
 export default mobileAds;

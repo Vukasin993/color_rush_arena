@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { RewardedAd, RewardedAdEventType, AdEventType } from 'react-native-google-mobile-ads';
-import { getAdUnitId } from '../services/admob';
+import { getAdUnitId, initializeAdMob } from '../services/admob';
 
 export const useRewardedAd = () => {
   const [loaded, setLoaded] = useState(false);
@@ -10,6 +10,8 @@ export const useRewardedAd = () => {
     resolve: (earned: boolean) => void;
     reject: (error: any) => void;
   } | null>(null);
+  const retryCountRef = useRef(0);
+  const maxRetries = 3;
 
   useEffect(() => {
     const adUnitId = getAdUnitId('rewarded');
@@ -21,6 +23,7 @@ export const useRewardedAd = () => {
     const unsubscribeLoaded = rewardedAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
       console.log('✅ Rewarded ad loaded');
       setLoaded(true);
+      retryCountRef.current = 0; // Reset retry counter on success
     });
 
     const unsubscribeEarned = rewardedAd.addAdEventListener(
@@ -47,8 +50,11 @@ export const useRewardedAd = () => {
       }
       
       setLoaded(false);
-      // Reload ad for next time
-      rewardedAd.load();
+      // Reload ad for next time (with longer delay to avoid internal error)
+      setTimeout(() => {
+        console.log('🔄 Reloading rewarded ad after close...');
+        rewardedAd.load();
+      }, 3000); // Increased from 1s to 3s
     });
 
     const unsubscribeFailed = rewardedAd.addAdEventListener(
@@ -56,11 +62,42 @@ export const useRewardedAd = () => {
       (error) => {
         console.error('❌ Rewarded ad failed to load:', error);
         setLoaded(false);
+        
+        // Retry loading after error with exponential backoff
+        if (retryCountRef.current < maxRetries) {
+          retryCountRef.current += 1;
+          const delay = Math.min(3000 * Math.pow(2, retryCountRef.current), 30000); // Start at 6s, max 30s
+          console.log(`🔄 Retrying rewarded ad load (attempt ${retryCountRef.current}/${maxRetries}) in ${delay}ms...`);
+          
+          setTimeout(() => {
+            rewardedAd.load();
+          }, delay);
+        } else {
+          console.error('❌ Max retries reached for rewarded ad - waiting 30s before reset');
+          // Wait longer before resetting to avoid hammering AdMob
+          setTimeout(() => {
+            console.log('🔄 Resetting retry counter and trying again...');
+            retryCountRef.current = 0;
+            rewardedAd.load();
+          }, 30000);
+        }
       }
     );
 
-    // Load the ad
-    rewardedAd.load();
+    // Load the ad after ensuring AdMob is initialized
+    (async () => {
+      try {
+        await initializeAdMob();
+        // Wait additional time after initialization
+        setTimeout(() => {
+          console.log('🔄 Loading initial rewarded ad...');
+          rewardedAd.load();
+        }, 2000);
+      } catch (error) {
+        console.error('❌ Failed to initialize AdMob before loading ad:', error);
+      }
+    })();
+    
     setRewarded(rewardedAd);
 
     return () => {
