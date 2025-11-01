@@ -19,7 +19,8 @@ interface PauseModalProps {
   visible: boolean;
   onResume: () => void;
   onExit: () => void;
-  onWatchAd: () => void;
+  onWatchAd?: () => void; // Optional - if not provided, button won't show
+  showWatchAd?: boolean; // Control visibility of Watch Ad button
 }
 
 const { width } = Dimensions.get('window');
@@ -29,6 +30,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({
   onResume,
   onExit,
   onWatchAd,
+  showWatchAd = true, // Default to showing watch ad button
 }) => {
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
@@ -56,38 +58,61 @@ export const PauseModal: React.FC<PauseModalProps> = ({
                 <Ionicons name="pause" size={48} color="#FFD60A" />
               </View>
               <Text style={styles.title}>Game Paused</Text>
-              <Text style={styles.subtitle}>Watch an ad to continue playing</Text>
+              {showWatchAd && (
+                <Text style={styles.subtitle}>Watch an ad to continue playing</Text>
+              )}
             </View>
 
-            {/* Ad Info */}
-            <View style={styles.adInfoContainer}>
-              <LinearGradient
-                colors={['rgba(255, 214, 10, 0.1)', 'rgba(255, 149, 0, 0.1)']}
-                style={styles.adInfoGradient}
-              >
-                <Ionicons name="play" size={24} color="#FFD60A" />
-                <Text style={styles.adInfoText}>
-                  Watch a short ad to resume your game and keep your progress!
-                </Text>
-              </LinearGradient>
-            </View>
+            {/* Ad Info - only show if watch ad is available */}
+            {showWatchAd && (
+              <View style={styles.adInfoContainer}>
+                <LinearGradient
+                  colors={['rgba(255, 214, 10, 0.1)', 'rgba(255, 149, 0, 0.1)']}
+                  style={styles.adInfoGradient}
+                >
+                  <Ionicons name="play" size={24} color="#FFD60A" />
+                  <Text style={styles.adInfoText}>
+                    Watch a short ad to resume your game and keep your progress!
+                  </Text>
+                </LinearGradient>
+              </View>
+            )}
 
             {/* Buttons */}
             <View style={styles.buttonsContainer}>
-              {/* Watch Ad Button */}
-              <TouchableOpacity
-                style={styles.button}
-                activeOpacity={0.8}
-                onPress={onWatchAd}
-              >
-                <LinearGradient
-                  colors={['#FFD60A', '#FF9500']}
-                  style={styles.buttonGradient}
+              {/* Watch Ad Button - only show if available */}
+              {showWatchAd && onWatchAd && (
+                <TouchableOpacity
+                  style={styles.button}
+                  activeOpacity={0.8}
+                  onPress={onWatchAd}
                 >
-                  <Ionicons name="play" size={20} color="#FFFFFF" />
-                  <Text style={styles.buttonText}>Watch Ad & Resume</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                  <LinearGradient
+                    colors={['#FFD60A', '#FF9500']}
+                    style={styles.buttonGradient}
+                  >
+                    <Ionicons name="play" size={20} color="#FFFFFF" />
+                    <Text style={styles.buttonText}>Watch Ad & Resume</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+              
+              {/* Resume Button - show when watch ad is not available */}
+              {!showWatchAd && (
+                <TouchableOpacity
+                  style={styles.button}
+                  activeOpacity={0.8}
+                  onPress={onResume}
+                >
+                  <LinearGradient
+                    colors={['#10B981', '#059669']}
+                    style={styles.buttonGradient}
+                  >
+                    <Ionicons name="play" size={20} color="#FFFFFF" />
+                    <Text style={styles.buttonText}>Resume Game</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
 
               {/* Exit Game Button */}
               <TouchableOpacity

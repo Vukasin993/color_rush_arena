@@ -95,7 +95,7 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
 }) => {
   const { level = "easy", autoStart = false, bonusTime = 0 } = route.params || {};
   const GAME_DURATION = getGameDuration(level, bonusTime);
-  const { currentGame, startGame, endGame, updateScore } = useGame();
+  const { startGame, endGame, updateScore } = useGame();
   const { isConnected, isInternetReachable } = useNetwork();
   const { loaded: interstitialLoaded, showAd: showInterstitialAd } = useInterstitialAd();
   const { loaded: rewardedAdLoaded, showAd: showRewardedAd } = useRewardedAd();
@@ -109,6 +109,8 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [isPaused, setIsPaused] = useState(false);
   const [showPauseModal, setShowPauseModal] = useState(false);
+  const [pauseAdsWatched, setPauseAdsWatched] = useState(0); // Track pause ads (max 1)
+  const [displayScore, setDisplayScore] = useState(0); // For UI display
 
   const timeLeftRef = useRef(GAME_DURATION);
   const startTimeRef = useRef<number | null>(null);
@@ -127,18 +129,106 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
 
   const scoreRef = useRef(0);
 
-  // 🔹 Game Over — stop animations before navigating
-    const handlePause = () => {
-    if (!gameStarted || isPaused) return;
-    setIsPaused(true);
-    setShowPauseModal(true);
-    
-    // Clear the interval to stop the timer
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current as NodeJS.Timeout);
-      intervalRef.current = null;
+  // --- TIMER, PAUSE, RESUME & WATCH AD LOGIKA ---
+
+const handlePause = () => {
+  if (!gameStarted || isPaused) return;
+
+  // Zapamti trenutno vreme
+  timeLeftRef.current = timeLeft;
+  console.log(`⏸️ Paused at ${timeLeftRef.current}s`);
+
+  // Stopiraj interval
+  if (intervalRef.current) {
+    clearInterval(intervalRef.current as NodeJS.Timeout);
+    intervalRef.current = null;
+  }
+
+  setIsPaused(true);
+  setShowPauseModal(true);
+};
+
+const handleResume = (resumeTime?: number) => {
+  // Vrati vreme ako je prosleđeno
+  if (resumeTime !== undefined) {
+    timeLeftRef.current = resumeTime;
+    setTimeLeft(resumeTime);
+  }
+
+  console.log(`▶️ Resuming at ${timeLeftRef.current}s`);
+  setShowPauseModal(false);
+  setIsPaused(false);
+};
+
+const handleWatchAd = async () => {
+  if (rewardedAdLoaded) {
+    const savedTime = timeLeftRef.current; // ⏱ Zapamti vreme pre reklame
+
+    const earned = await showRewardedAd();
+
+    if (earned) {
+      console.log("✅ Reward granted — resume from exact same time:", savedTime);
+      setPauseAdsWatched(1);
+      handleResume(savedTime); // Nastavi sa istim vremenom
+    } else {
+      console.log("❌ Ad closed — still paused");
     }
-  };
+  } else {
+    console.warn("⚠️ Ad not loaded — resume anyway");
+    handleResume(timeLeftRef.current);
+  }
+};
+
+// TIMER - jednostavan i precizan interval
+const handleGameOver = useCallback(async () => {
+  if (!gameStarted) return;
+  
+  // Clear any ongoing intervals
+  if (intervalRef.current) {
+    clearInterval(intervalRef.current as NodeJS.Timeout);
+    intervalRef.current = null;
+  }
+
+  const score = scoreRef.current; // ✅ Use scoreRef as source of truth
+  const xpEarned = calculateXPEarned(score, level);
+
+  setGameStarted(false);
+  endGame(score);
+  
+  // Show interstitial ad with 15% chance
+  const showAd = Math.random() < 0.15; // 15% chance
+  if (showAd && interstitialLoaded) {
+    console.log('📺 Showing interstitial ad (15% chance)');
+    await showInterstitialAd();
+  }
+  
+  console.log('✅ GameOver - navigating with:', { gameType: 'colorMatch', level, score, xpEarned });
+  
+  navigation.replace('GameOverScreen', {
+    gameType: 'colorMatch',
+    level,
+    score,
+    xpEarned,
+  });
+}, [gameStarted, level, endGame, navigation, interstitialLoaded, showInterstitialAd]);
+
+useEffect(() => {
+  if (gameStarted && !isPaused) {
+    intervalRef.current = setInterval(() => {
+      timeLeftRef.current -= 1;
+      setTimeLeft(timeLeftRef.current);
+
+      if (timeLeftRef.current <= 0) {
+        clearInterval(intervalRef.current as NodeJS.Timeout);
+        handleGameOver();
+      }
+    }, 1000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }
+}, [gameStarted, isPaused, handleGameOver]);
 
   // Exit game when internet connection is lost
   useEffect(() => {
@@ -150,40 +240,6 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
     }
   }, [isConnected, isInternetReachable, gameStarted, navigation]);
 
-  const handleResume = () => {
-    setShowPauseModal(false);
-    setIsPaused(false);
-    // Resume the timer
-    if (!intervalRef.current && timeLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            handleGameOver();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-  };
-
-  const handleWatchAd = async () => {
-    if (rewardedAdLoaded) {
-      const earned = await showRewardedAd();
-      
-      // Check if user earned reward
-      if (earned) {
-        console.log('✅ User watched the ad! Resuming game...');
-        handleResume();
-      } else {
-        console.log('❌ User closed ad without watching - staying paused');
-        // Keep game paused - user can try again or exit
-      }
-    } else {
-      console.warn('⚠️ Rewarded ad not loaded - resuming without ad');
-      handleResume(); // Fallback - resume anyway
-    }
-  };
 
   const handleExitGame = () => {
     setShowPauseModal(false);
@@ -197,38 +253,6 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
     
     navigation.goBack();
   };
-
-  const handleGameOver = useCallback(async () => {
-    if (!gameStarted) return;
-    
-    // Clear any ongoing intervals
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current as NodeJS.Timeout);
-      intervalRef.current = null;
-    }
-
-    const score = currentGame.score;
-    const xpEarned = calculateXPEarned(score, level);
-
-    setGameStarted(false);
-    endGame(score);
-    
-    // Show interstitial ad with 15% chance
-    const showAd = Math.random() < 0.15; // 15% chance
-    if (showAd && interstitialLoaded) {
-      console.log('📺 Showing interstitial ad (15% chance)');
-      await showInterstitialAd();
-    }
-    
-    console.log('✅ GameOver - navigating with:', { gameType: 'colorMatch', level, score, xpEarned });
-    
-    navigation.replace('GameOverScreen', {
-      gameType: 'colorMatch',
-      level,
-      score,
-      xpEarned,
-    });
-  }, [gameStarted, currentGame.score, level, endGame, navigation, interstitialLoaded, showInterstitialAd]);
 
   const handleStartGame = useCallback(() => {
     setGameStarted(true);
@@ -246,28 +270,6 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
     }
   }, [autoStart, gameStarted, handleStartGame]);
 
-  // 🔹 Timer effect with real time tracking
-  useEffect(() => {
-    if (gameStarted) {
-      intervalRef.current = setInterval(() => {
-        const elapsed = (Date.now() - (startTimeRef.current ?? 0)) / 1000;
-        const remaining = Math.max(0, GAME_DURATION - Math.floor(elapsed));
-        setTimeLeft(remaining);
-        timeLeftRef.current = remaining;
-
-        if (remaining <= 0) {
-          handleGameOver();
-        }
-      }, 250);
-
-      return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-      };
-    }
-  }, [gameStarted, handleGameOver, GAME_DURATION]);
 
   // 🔹 Color press logic
   const handleColorPress = useCallback(
@@ -276,8 +278,9 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
       const isCorrect = selectedColor.name === currentWord.name;
 
       if (isCorrect) {
-        updateScore(1);
-        scoreRef.current = currentGame.score + 1;
+        scoreRef.current += 1;
+        setDisplayScore(scoreRef.current); // ✅ Update UI
+        updateScore(1); // Async store update
 
         pulseAnimation.value = withSequence(
           withTiming(1.2, { duration: 100 }),
@@ -287,8 +290,9 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
         Vibration.vibrate(50);
         generateNewRound();
       } else {
-        updateScore(-1);
-        scoreRef.current = currentGame.score - 1;
+        scoreRef.current -= 1;
+        setDisplayScore(scoreRef.current); // ✅ Update UI
+        updateScore(-1); // Async store update
 
         shakeAnimation.value = withSequence(
           withTiming(-10, { duration: 50 }),
@@ -306,7 +310,6 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
       generateNewRound,
       pulseAnimation,
       shakeAnimation,
-      currentGame.score,
     ]
   );
 
@@ -343,9 +346,10 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
       <GameHeader
         timeLeft={timeLeft}
-        score={currentGame.score}
+        score={displayScore}
         totalTime={GAME_DURATION}
         onPause={handlePause}
+        pauseAdsWatched={pauseAdsWatched}
       />
       <Animated.View style={[styles.gameArea, shakeStyle]}>
         <WordDisplay
@@ -357,12 +361,13 @@ export const ColorMatchGame: React.FC<ColorMatchGameProps> = ({
         <ColorButtons colors={COLORS} onColorPress={handleColorPress} />
       </Animated.View>
 
-      <PauseModal
+      {pauseAdsWatched === 0 && <PauseModal
         visible={showPauseModal}
+        showWatchAd={pauseAdsWatched === 0} // Only show watch ad first time
         onResume={handleResume}
         onWatchAd={handleWatchAd}
         onExit={handleExitGame}
-      />
+      />}
     </SafeAreaView>
   );
 };

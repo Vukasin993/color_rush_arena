@@ -13,6 +13,7 @@ interface GameHeaderProps {
   score: number;
   totalTime: number;
   onPause?: () => void;
+  pauseAdsWatched?: number;
 }
 
 export const GameHeader: React.FC<GameHeaderProps> = ({
@@ -20,6 +21,7 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
   score,
   totalTime,
   onPause,
+  pauseAdsWatched = 0
 }) => {
   const [fontsLoaded] = useFonts({
     Orbitron_400Regular,
@@ -48,7 +50,7 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
         <Text style={styles.scoreText}>{score}</Text>
       </View>
 
-      {onPause && (
+      {pauseAdsWatched === 1 ? null : onPause && (
         <TouchableOpacity
           style={styles.pauseButton}
           activeOpacity={0.8}
