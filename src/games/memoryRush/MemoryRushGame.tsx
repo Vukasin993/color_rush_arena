@@ -584,16 +584,26 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
       // Check if user earned reward
       if (earned) {
         console.log('✅ User watched the ad! Continuing game...');
+        
+        // Reset game state and replay current sequence
         setGameState((prev) => ({
           ...prev,
           gameOver: false,
-          waitingForInput: true,
+          waitingForInput: false, // Will be set to true after sequence display
+          playerInput: [],
+          userProgress: [],
+          currentInputIndex: 0,
           canWatchAdToContinue: false, // Can only use once per game
           powerUps: {
             ...prev.powerUps,
             adsWatched: prev.powerUps.adsWatched + 1,
           },
         }));
+        
+        // Replay the current sequence after short delay
+        setTimeout(() => {
+          displaySequence(gameState.sequence);
+        }, 500);
       } else {
         console.log('❌ User closed ad without watching - game over remains');
         // Keep game over state - user can try again or exit
@@ -604,19 +614,68 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
       setGameState((prev) => ({
         ...prev,
         gameOver: false,
-        waitingForInput: true,
+        waitingForInput: false,
+        playerInput: [],
+        userProgress: [],
+        currentInputIndex: 0,
         canWatchAdToContinue: false,
         powerUps: {
           ...prev.powerUps,
           adsWatched: prev.powerUps.adsWatched + 1,
         },
       }));
+      
+      setTimeout(() => {
+        displaySequence(gameState.sequence);
+      }, 500);
     }
-  }, [rewardedAdLoaded, showRewardedAd]);
+  }, [rewardedAdLoaded, showRewardedAd, gameState.sequence, displaySequence]);
+
+  // Watch ad to get power-up (MOVED HERE - must be before useRepeatSequence and useSkipLevel)
+  const watchAdForPowerUp = useCallback(async (powerUpType: 'repeat' | 'skip') => {
+    // Check if user has watched too many ads
+    if (gameState.powerUps.adsWatched >= 5) {
+      console.log('❌ Max ads limit reached (5/5)');
+      return false;
+    }
+
+    if (rewardedAdLoaded) {
+      const earned = await showRewardedAd();
+      
+      if (earned) {
+        console.log(`✅ User watched ad for ${powerUpType} power-up!`);
+        
+        setGameState((prev) => ({
+          ...prev,
+          powerUps: {
+            ...prev.powerUps,
+            [powerUpType === 'repeat' ? 'repeatSequence' : 'skipLevel']: 
+              prev.powerUps[powerUpType === 'repeat' ? 'repeatSequence' : 'skipLevel'] + 1,
+            adsWatched: prev.powerUps.adsWatched + 1,
+          },
+        }));
+        
+        console.log(`📺 Power-up ads watched: ${gameState.powerUps.adsWatched + 1}/5`);
+        return true;
+      } else {
+        console.log('❌ User closed ad without watching');
+        return false;
+      }
+    } else {
+      console.warn('⚠️ Rewarded ad not loaded');
+      return false;
+    }
+  }, [rewardedAdLoaded, showRewardedAd, gameState.powerUps.adsWatched]);
 
   // Use repeat sequence power-up
-  const useRepeatSequence = useCallback(() => {
-    if (gameState.powerUps.repeatSequence > 0 && gameState.waitingForInput) {
+  const useRepeatSequence = useCallback(async () => {
+    if (!gameState.waitingForInput) return;
+    
+    // Check if this is the first use (free) or needs ad
+    if (gameState.powerUps.repeatSequence > 0) {
+      // Has power-ups available - use one (FREE)
+      console.log('🔄 Using Repeat power-up (free)');
+      
       // Sačuvaj trenutni progres pre ponovnog prikaza
       const currentProgress = gameState.playerInput;
       const currentUserProgress = gameState.userProgress;
@@ -635,20 +694,34 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
         // Prikaži sekvencu ali zadrži progres
         displaySequenceWithProgress(gameState.sequence, currentProgress, currentUserProgress, currentInputIndex);
       }, 300);
+    } else if (gameState.powerUps.adsWatched < 5) {
+      // No power-ups left - watch ad to get one
+      console.log('📺 No Repeat left - watching ad to get one');
+      await watchAdForPowerUp('repeat');
+    } else {
+      console.log('❌ Max ads limit reached - cannot get more power-ups');
     }
   }, [
     gameState.powerUps.repeatSequence,
+    gameState.powerUps.adsWatched,
     gameState.waitingForInput,
     gameState.sequence,
     gameState.playerInput,
     gameState.userProgress,
     gameState.currentInputIndex,
     displaySequenceWithProgress,
+    watchAdForPowerUp,
   ]);
 
   // Use skip level power-up
-  const useSkipLevel = useCallback(() => {
-    if (gameState.powerUps.skipLevel > 0 && gameState.waitingForInput) {
+  const useSkipLevel = useCallback(async () => {
+    if (!gameState.waitingForInput) return;
+    
+    // Check if this is the first use (free) or needs ad
+    if (gameState.powerUps.skipLevel > 0) {
+      // Has power-ups available - use one (FREE)
+      console.log('⏭️ Using Skip power-up (free)');
+      
       const newLevel = gameState.currentLevel + 1;
       const newSequence = generateSequence(newLevel);
 
@@ -671,13 +744,21 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
       setTimeout(() => {
         displaySequence(newSequence);
       }, 500);
+    } else if (gameState.powerUps.adsWatched < 5) {
+      // No power-ups left - watch ad to get one
+      console.log('📺 No Skip left - watching ad to get one');
+      await watchAdForPowerUp('skip');
+    } else {
+      console.log('❌ Max ads limit reached - cannot get more power-ups');
     }
   }, [
     gameState.powerUps.skipLevel,
+    gameState.powerUps.adsWatched,
     gameState.waitingForInput,
     gameState.currentLevel,
     generateSequence,
     displaySequence,
+    watchAdForPowerUp,
   ]);
 
   // Auto-start if specified
@@ -822,38 +903,67 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
 
             {/* Power-ups */}
             <View style={styles.powerUpsContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.powerUpButton,
-                  gameState.powerUps.repeatSequence === 0 &&
-                    styles.powerUpDisabled,
-                ]}
-                onPress={useRepeatSequence}
-                disabled={
-                  gameState.powerUps.repeatSequence === 0 ||
-                  !gameState.waitingForInput
-                }
-              >
-                <Text style={styles.powerUpText}>
-                  🔄 {gameState.powerUps.repeatSequence}
-                </Text>
-              </TouchableOpacity>
+              {/* Repeat Sequence */}
+              <View>
+                <TouchableOpacity
+                  style={[
+                    styles.powerUpButton,
+                    gameState.powerUps.repeatSequence === 0 &&
+                      styles.powerUpDisabled,
+                  ]}
+                  onPress={useRepeatSequence}
+                  disabled={
+                    gameState.powerUps.repeatSequence === 0 ||
+                    !gameState.waitingForInput
+                  }
+                >
+                  <Text style={styles.powerUpText}>
+                    🔄 {gameState.powerUps.repeatSequence}
+                  </Text>
+                </TouchableOpacity>
+                {gameState.powerUps.repeatSequence === 0 && gameState.powerUps.adsWatched < 5 && (
+                  <TouchableOpacity
+                    style={styles.watchAdForPowerUp}
+                    onPress={() => watchAdForPowerUp('repeat')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.watchAdText}>📺 Ad</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.powerUpButton,
-                  gameState.powerUps.skipLevel === 0 && styles.powerUpDisabled,
-                ]}
-                onPress={useSkipLevel}
-                disabled={
-                  gameState.powerUps.skipLevel === 0 ||
-                  !gameState.waitingForInput
-                }
-              >
-                <Text style={styles.powerUpText}>
-                  ⏭️ {gameState.powerUps.skipLevel}
-                </Text>
-              </TouchableOpacity>
+              {/* Skip Level */}
+              <View>
+                <TouchableOpacity
+                  style={[
+                    styles.powerUpButton,
+                    gameState.powerUps.skipLevel === 0 && styles.powerUpDisabled,
+                  ]}
+                  onPress={useSkipLevel}
+                  disabled={
+                    gameState.powerUps.skipLevel === 0 ||
+                    !gameState.waitingForInput
+                  }
+                >
+                  <Text style={styles.powerUpText}>
+                    ⏭️ {gameState.powerUps.skipLevel}
+                  </Text>
+                </TouchableOpacity>
+                {gameState.powerUps.skipLevel === 0 && gameState.powerUps.adsWatched < 5 && (
+                  <TouchableOpacity
+                    style={styles.watchAdForPowerUp}
+                    onPress={() => watchAdForPowerUp('skip')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.watchAdText}>📺 Ad</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              {/* Ads counter */}
+              <Text style={styles.adsCounterText}>
+                Ads: {gameState.powerUps.adsWatched}/5
+              </Text>
             </View>
           </View>
 
@@ -1283,6 +1393,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Orbitron_700Bold",
     color: "#00FFC6",
+  },
+  watchAdForPowerUp: {
+    backgroundColor: "rgba(255, 214, 10, 0.2)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: "#FFD60A",
+  },
+  watchAdText: {
+    fontSize: 10,
+    fontFamily: "Orbitron_700Bold",
+    color: "#FFD60A",
+    textAlign: "center",
+  },
+  adsCounterText: {
+    fontSize: 10,
+    fontFamily: "Orbitron_400Regular",
+    color: "#B8B8D1",
+    marginTop: 4,
   },
   statusContainer: {
     alignItems: "center",
