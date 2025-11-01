@@ -65,59 +65,39 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
   };
 
   const handleWatchAd = async () => {
-    if (rewardedAdLoaded) {
-      const earned = await showRewardedAd();
-      
-      // Check if user earned reward
-      if (earned) {
-        console.log('✅ User watched the ad! Starting game with +5s bonus...');
-        setShowAdModal(false);
-        
-        // Navigate with bonus time after watching ad
-        if (gameType === "colorMatch") {
-          navigation.navigate("ColorMatchGame", {
-            level: selectedLevel,
-            bonusTime: 5,
-          });
-        } else if (gameType === "reactionTap") {
-          navigation.navigate("ReactionGame", {
-            level: selectedLevel,
-            bonusTime: 5,
-          });
-        }
-      } else {
-        console.log('❌ User closed ad without watching - starting without bonus');
-        setShowAdModal(false);
-        
-        // Start game without bonus if ad wasn't watched
-        if (gameType === "colorMatch") {
-          navigation.navigate("ColorMatchGame", {
-            level: selectedLevel,
-            bonusTime: 0,
-          });
-        } else if (gameType === "reactionTap") {
-          navigation.navigate("ReactionGame", {
-            level: selectedLevel,
-            bonusTime: 0,
-          });
-        }
-      }
-    } else {
-      console.warn('⚠️ Rewarded ad not loaded - starting game without bonus');
+    console.log('🎬 handleWatchAd called - Ad loaded:', rewardedAdLoaded);
+    
+    if (!rewardedAdLoaded) {
+      console.warn('⚠️ Rewarded ad not loaded yet - Please wait...');
+      // Don't close modal, let user try again or cancel
+      return;
+    }
+
+    console.log('📺 Showing rewarded ad...');
+    const earned = await showRewardedAd();
+    
+    console.log('🎯 Ad result - Earned:', earned);
+    
+    // Check if user earned reward
+    if (earned) {
+      console.log('✅ User watched the ad! Starting game with +5s bonus...');
       setShowAdModal(false);
       
-      // Fallback - start without bonus if ad not loaded
+      // Navigate with bonus time after watching ad
       if (gameType === "colorMatch") {
         navigation.navigate("ColorMatchGame", {
           level: selectedLevel,
-          bonusTime: 0,
+          bonusTime: 5,
         });
       } else if (gameType === "reactionTap") {
         navigation.navigate("ReactionGame", {
           level: selectedLevel,
-          bonusTime: 0,
+          bonusTime: 5,
         });
       }
+    } else {
+      console.log('❌ User closed ad without watching - staying in modal');
+      // Keep modal open, let user decide to try again or cancel
     }
   };
 
