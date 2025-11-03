@@ -1096,8 +1096,8 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
                   Best Level: {gameState.highestLevel}
                 </Text>
 
-                {/* Watch Ad to Continue - only once per game */}
-                {gameState.canWatchAdToContinue && (
+                {/* Watch Ad to Continue - only once per game and if ads are still available */}
+                {gameState.canWatchAdToContinue && gameState.powerUps.adsWatched < 3 && (
                   <TouchableOpacity
                     style={[styles.gameButton, styles.adButton]}
                     onPress={handleWatchAdToContinue}

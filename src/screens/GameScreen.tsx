@@ -30,19 +30,24 @@ interface GameScreenProps {
   };
 }
 
-export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => {
+export const GameScreen: React.FC<GameScreenProps> = ({
+  navigation,
+  route,
+}) => {
   const gameType = route?.params?.gameType || "unknown";
   const { isLevelUnlocked } = useGame();
   const { loaded: rewardedAdLoaded, showAd: showRewardedAd } = useRewardedAd();
 
   const [showAdModal, setShowAdModal] = useState(false);
-  const [selectedLevel, setSelectedLevel] = useState<"easy" | "medium" | "hard">("easy");
+  const [selectedLevel, setSelectedLevel] = useState<
+    "easy" | "medium" | "hard"
+  >("easy");
   const [hasSavedMemoryRush, setHasSavedMemoryRush] = useState(false);
 
   useEffect(() => {
-    if (gameType === 'memoryRush') {
+    if (gameType === "memoryRush") {
       (async () => {
-        const saved = await AsyncStorage.getItem('@memory_rush_saved_game');
+        const saved = await AsyncStorage.getItem("@memory_rush_saved_game");
         setHasSavedMemoryRush(!!saved);
       })();
     } else {
@@ -65,13 +70,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
   };
 
   const handleWatchAd = async () => {
-    console.log('🎬 handleWatchAd called - Ad loaded:', rewardedAdLoaded);
-    
+    console.log("🎬 handleWatchAd called - Ad loaded:", rewardedAdLoaded);
+
     // Function to start game with bonus (shared logic)
     const startGameWithBonus = () => {
-      console.log('✅ Starting game with +5s bonus...');
+      console.log("✅ Starting game with +5s bonus...");
       setShowAdModal(false);
-      
+
       // Navigate with bonus time after watching ad
       if (gameType === "colorMatch") {
         navigation.navigate("ColorMatchGame", {
@@ -85,23 +90,23 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
         });
       }
     };
-    
+
     if (rewardedAdLoaded) {
-      console.log('📺 Showing rewarded ad...');
+      console.log("📺 Showing rewarded ad...");
       const earned = await showRewardedAd();
-      
-      console.log('🎯 Ad result - Earned:', earned);
-      
+
+      console.log("🎯 Ad result - Earned:", earned);
+
       // Check if user earned reward
       if (earned) {
-        console.log('User watched the ad!');
+        console.log("User watched the ad!");
         startGameWithBonus();
       } else {
-        console.log('❌ User closed ad without watching - staying in modal');
+        console.log("❌ User closed ad without watching - staying in modal");
         // Keep modal open, let user decide to try again or cancel
       }
     } else {
-      console.warn('⚠️ Rewarded ad not loaded - granting bonus automatically');
+      console.warn("⚠️ Rewarded ad not loaded - granting bonus automatically");
       // Ad not loaded - grant bonus anyway (don't punish user for our ad system)
       startGameWithBonus();
     }
@@ -114,28 +119,32 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
           title: "Color Match",
           emoji: "🎨",
           description: "Test your color recognition skills!",
-          instructions: "Choose Endless Mode for unlimited play with reaction-based scoring, or pick a difficulty level for timed challenges!",
+          instructions:
+            "Choose Endless Mode for unlimited play with reaction-based scoring, or pick a difficulty level for timed challenges!",
         };
       case "reactionTap":
         return {
           title: "Reaction Tap",
           emoji: "⚡️",
           description: "Test your reaction speed!",
-          instructions: "Tap the screen as soon as you see the signal. Try to be as fast as possible!",
+          instructions:
+            "Tap the screen as soon as you see the signal. Try to be as fast as possible!",
         };
       case "memoryRush":
         return {
           title: "Memory Rush",
           emoji: "🧩",
           description: "Challenge your memory!",
-          instructions: "Remember the sequence and repeat it. Each round gets harder!",
+          instructions:
+            "Remember the sequence and repeat it. Each round gets harder!",
         };
       case "colorSnake":
         return {
           title: "Color Snake",
           emoji: "🐍",
           description: "Coming soon!",
-          instructions: "Eat the right colors to grow your snake. Avoid obstacles!",
+          instructions:
+            "Eat the right colors to grow your snake. Avoid obstacles!",
         };
       default:
         return {
@@ -184,6 +193,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
         {/* Endless Mode for Color Match */}
         {gameType === "colorMatch" && (
           <View style={styles.buttonsContainer}>
+            <Text style={styles.levelSelectionTitle}>Play Endless mode:</Text>
+
             <TouchableOpacity
               style={styles.actionButton}
               activeOpacity={0.8}
@@ -195,10 +206,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
                 colors={["#FF6B6B", "#FF4757"]}
                 style={styles.actionButtonGradient}
               >
-                <Text style={styles.actionButtonText}>
-                  ∞ ENDLESS MODE
-                </Text>
-                <Text style={[styles.actionButtonText, { fontSize: 12, opacity: 0.9, marginTop: 4 }]}>
+                <Text style={styles.actionButtonText}>∞ ENDLESS MODE</Text>
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    { fontSize: 12, opacity: 0.9, marginTop: 4 },
+                  ]}
+                >
                   React fast for max points!
                 </Text>
               </LinearGradient>
@@ -209,6 +223,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
         {/* Level Selection */}
         {(gameType === "colorMatch" || gameType === "reactionTap") && (
           <View style={styles.levelSelectionContainer}>
+            <Text style={styles.levelSelectionTitle}>OR</Text>
             <Text style={styles.levelSelectionTitle}>Choose Difficulty:</Text>
 
             {/* Easy Level */}
@@ -403,10 +418,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
               style={styles.actionButton}
               activeOpacity={0.8}
               onPress={async () => {
-                console.log("REMOVE?")
+                console.log("REMOVE?");
                 setHasSavedMemoryRush(false);
                 await AsyncStorage.removeItem("@memory_rush_saved_game");
-                navigation.navigate("MemoryRushGame", { autoStart: true })
+                navigation.navigate("MemoryRushGame", { autoStart: true });
               }}
             >
               <LinearGradient

@@ -188,7 +188,12 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
   // --- ONE CENTRAL GAME LOOP ---
   // Ovaj interval proverava vreme i tempo, sve u jednom ciklusu
   useEffect(() => {
-    if (!gameState.gameStarted || gameState.gameOver || isPaused || waitingForFirstClick)
+    if (
+      !gameState.gameStarted ||
+      gameState.gameOver ||
+      isPaused ||
+      waitingForFirstClick
+    )
       return;
 
     const loop = setInterval(() => {
@@ -196,7 +201,7 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
       const totalElapsedTime = now - gameStartTimeRef.current;
       const actualPlayTime = totalElapsedTime - pausedTimeRef.current;
       const timeInSeconds = Math.floor(actualPlayTime / 1000);
-      
+
       // 🐛 DEBUG: Log timer calculation every 5 seconds
       if (timeInSeconds % 5 === 0 && timeInSeconds > 0) {
         console.log(`⏱️ TIMER DEBUG:
@@ -207,7 +212,7 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
           - isPaused: ${isPaused}
           - waitingForFirstClick: ${waitingForFirstClick}`);
       }
-      
+
       setCurrentGameTime(timeInSeconds);
 
       // --- 1️⃣ Izračunaj trenutni minut igre ---
@@ -218,23 +223,32 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
       if (currentMinute > lastCheckedMinuteRef.current && timeInSeconds >= 60) {
         // Proveri prethodni minut (onaj koji se upravo završio)
         const completedMinute = currentMinute - 1;
-        
+
         // Calculate minute boundaries in relative game time (ms)
         const minuteStartTimeRelative = completedMinute * 60000;
         const minuteEndTimeRelative = (completedMinute + 1) * 60000;
-        
+
         // Filter clicks - they are already in relative time
-        const minuteClicks = clickTimestampsRef.current.filter((relativeClickTime) => {
-          return relativeClickTime >= minuteStartTimeRelative && relativeClickTime < minuteEndTimeRelative;
-        });
-        
+        const minuteClicks = clickTimestampsRef.current.filter(
+          (relativeClickTime) => {
+            return (
+              relativeClickTime >= minuteStartTimeRelative &&
+              relativeClickTime < minuteEndTimeRelative
+            );
+          }
+        );
+
         // Povećavaj za 1 svaki minut, počinje od 45, max 90
         const minuteRequiredClicks = Math.min(45 + completedMinute, 90);
 
         console.log(
-          `🔍 Checking minute ${completedMinute + 1} (${minuteStartTimeRelative/1000}s - ${minuteEndTimeRelative/1000}s): ${
+          `🔍 Checking minute ${completedMinute + 1} (${
+            minuteStartTimeRelative / 1000
+          }s - ${minuteEndTimeRelative / 1000}s): ${
             minuteClicks.length
-          }/${minuteRequiredClicks} clicks | Total clicks: ${clickTimestampsRef.current.length}`
+          }/${minuteRequiredClicks} clicks | Total clicks: ${
+            clickTimestampsRef.current.length
+          }`
         );
 
         if (minuteClicks.length < minuteRequiredClicks) {
@@ -251,15 +265,15 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
           setGameState((prev) => {
             if (prev.adsWatched >= 2) {
               // No more continues - end game immediately
-              console.log('❌ No more continues available - ending game');
+              console.log("❌ No more continues available - ending game");
               setTimeout(() => handleGameOver(), 100);
               setIsPaused(true); // ✅ Use separate state
               return { ...prev, wrongAnswer: false };
             } else {
               // Record pause start time BEFORE showing modal
               pauseStartTimeRef.current = Date.now();
-              console.log('⏸️ Pausing game - modal shown (slow play)');
-              
+              console.log("⏸️ Pausing game - modal shown (slow play)");
+
               // Pause game and show modal
               setIsPaused(true); // ✅ Use separate state
               setShowWatchAdModal(true);
@@ -280,7 +294,12 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
 
     return () => clearInterval(loop);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState.gameStarted, gameState.gameOver, isPaused, waitingForFirstClick]);
+  }, [
+    gameState.gameStarted,
+    gameState.gameOver,
+    isPaused,
+    waitingForFirstClick,
+  ]);
 
   // Generate new question
   const generateNewQuestion = useCallback(() => {
@@ -332,29 +351,31 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
       if (waitingForFirstClick) {
         const waitDuration = Date.now() - pauseStartTimeRef.current;
         pausedTimeRef.current += waitDuration;
-        
+
         // ✅ INSTANTLY update displayed time to current game time
         const now = Date.now();
         const totalElapsedTime = now - gameStartTimeRef.current;
         const actualPlayTime = totalElapsedTime - pausedTimeRef.current;
         const timeInSeconds = Math.floor(actualPlayTime / 1000);
         setCurrentGameTime(timeInSeconds);
-        
+
         console.log(`⏸️ FIRST CLICK AFTER AD:
           - waitDuration: ${Math.floor(waitDuration / 1000)}s
-          - pausedTimeRef BEFORE: ${Math.floor((pausedTimeRef.current - waitDuration) / 1000)}s
+          - pausedTimeRef BEFORE: ${Math.floor(
+            (pausedTimeRef.current - waitDuration) / 1000
+          )}s
           - pausedTimeRef AFTER: ${Math.floor(pausedTimeRef.current / 1000)}s
           - resuming at: ${timeInSeconds}s`);
         setWaitingForFirstClick(false);
         setIsPaused(false); // ✅ Resume timer NOW when user clicks
-        console.log('▶️ Timer resumed after first click');
+        console.log("▶️ Timer resumed after first click");
       }
 
       // Track click timestamp in RELATIVE game time (excluding pauses)
       const now = Date.now();
       const totalElapsedTime = now - gameStartTimeRef.current;
       const actualPlayTime = totalElapsedTime - pausedTimeRef.current;
-      
+
       console.log(`🎯 CLICK DEBUG:
         - gameStartTime: ${new Date(gameStartTimeRef.current).toISOString()}
         - now: ${new Date(now).toISOString()}
@@ -362,14 +383,14 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
         - pausedTime: ${Math.floor(pausedTimeRef.current / 1000)}s
         - actualPlayTime: ${Math.floor(actualPlayTime / 1000)}s
         - waitingForFirstClick: ${waitingForFirstClick}`);
-      
+
       // Store relative time instead of absolute timestamp
       clickTimestampsRef.current.push(actualPlayTime);
 
       // Očisti stare klikove (starije od 5 minuta relativnog vremena)
       const fiveMinutesRelative = 300000; // 5 minuta u ms
       clickTimestampsRef.current = clickTimestampsRef.current.filter(
-        (relativeTime) => relativeTime > (actualPlayTime - fiveMinutesRelative)
+        (relativeTime) => relativeTime > actualPlayTime - fiveMinutesRelative
       );
 
       const reactionTime = now - gameState.startTime;
@@ -418,25 +439,27 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
         setGameState((prev) => {
           if (prev.adsWatched >= 2) {
             // No more continues - end game immediately
-            console.log('❌ No more continues available - ending game');
+            console.log("❌ No more continues available - ending game");
             setTimeout(() => handleGameOver(), 100);
             setIsPaused(true); // ✅ Use separate state
             return { ...prev, wrongAnswer: true };
           } else {
             // Record pause start time BEFORE showing modal
             pauseStartTimeRef.current = Date.now();
-            
+
             // Calculate current game time for debugging
             const now = Date.now();
             const totalElapsedTime = now - gameStartTimeRef.current;
             const actualPlayTime = totalElapsedTime - pausedTimeRef.current;
             const currentTimeInSeconds = Math.floor(actualPlayTime / 1000);
-            
+
             console.log(`⏸️ WRONG ANSWER - PAUSING GAME:
               - currentGameTime: ${currentTimeInSeconds}s
-              - pauseStartTime: ${new Date(pauseStartTimeRef.current).toISOString()}
+              - pauseStartTime: ${new Date(
+                pauseStartTimeRef.current
+              ).toISOString()}
               - pausedTimeRef: ${Math.floor(pausedTimeRef.current / 1000)}s`);
-            
+
             // Pause game and show modal
             setIsPaused(true); // ✅ Use separate state
             setShowWatchAdModal(true);
@@ -498,17 +521,12 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
       questionsAnswered: gameState.questionsAnswered,
       level: "endless",
     });
-  }, [
-    gameState.questionsAnswered,
-    updateGameStats,
-    addGameResult,
-    navigation,
-  ]);
+  }, [gameState.questionsAnswered, updateGameStats, addGameResult, navigation]);
 
   // Watch ad to continue
   const handleWatchAd = useCallback(async () => {
     setShowWatchAdModal(false);
-    
+
     // Function to continue game (shared logic)
     const continueGame = () => {
       // ✅ Add pause duration up to NOW (modal + ad time)
@@ -518,36 +536,44 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
         - pauseStartTime: ${new Date(pauseStartTimeRef.current).toISOString()}
         - now: ${new Date(Date.now()).toISOString()}
         - pauseDuration (modal+ad): ${Math.floor(pauseDurationSoFar / 1000)}s
-        - pausedTimeRef BEFORE: ${Math.floor((pausedTimeRef.current - pauseDurationSoFar) / 1000)}s
+        - pausedTimeRef BEFORE: ${Math.floor(
+          (pausedTimeRef.current - pauseDurationSoFar) / 1000
+        )}s
         - pausedTimeRef AFTER: ${Math.floor(pausedTimeRef.current / 1000)}s`);
-      
+
       // ✅ Reset pauseStartTimeRef to track time waiting for first click
       pauseStartTimeRef.current = Date.now();
-      console.log(`⏸️ Reset pauseStartTimeRef for wait tracking: ${new Date(pauseStartTimeRef.current).toISOString()}`);
-      
+      console.log(
+        `⏸️ Reset pauseStartTimeRef for wait tracking: ${new Date(
+          pauseStartTimeRef.current
+        ).toISOString()}`
+      );
+
       // Increment ads watched counter
       setGameState((prev) => {
         const newAdsWatched = prev.adsWatched + 1;
         console.log(`📺 Ads watched: ${newAdsWatched}/2`);
-        
+
         return {
           ...prev,
           wrongAnswer: false,
           adsWatched: newAdsWatched,
         };
       });
-      
+
       // ✅ Keep isPaused=true, just set waitingForFirstClick
       // Timer will resume automatically when user clicks (waitingForFirstClick becomes false)
       setWaitingForFirstClick(true);
-      console.log('⏸️ Waiting for first click after ad... (isPaused stays true)');
-      
+      console.log(
+        "⏸️ Waiting for first click after ad... (isPaused stays true)"
+      );
+
       // Calculate current game time and round to seconds
       const now = Date.now();
       const totalElapsedTime = now - gameStartTimeRef.current;
       const actualPlayTime = totalElapsedTime - pausedTimeRef.current;
       const currentTimeInSeconds = Math.floor(actualPlayTime / 1000);
-      
+
       console.log(`⏱️ TIME CALCULATION AFTER AD:
         - gameStartTime: ${new Date(gameStartTimeRef.current).toISOString()}
         - totalElapsed: ${Math.floor(totalElapsedTime / 1000)}s
@@ -572,22 +598,22 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
       // Continue game
       generateNewQuestion();
     };
-    
+
     // Show rewarded ad if available, otherwise grant reward automatically
     if (rewardedAdLoaded) {
       const earned = await showRewardedAd();
-      
+
       // Check if user earned reward
       if (earned) {
-        console.log('✅ User watched the ad! Continuing game...');
+        console.log("✅ User watched the ad! Continuing game...");
         continueGame();
       } else {
-        console.log('❌ User closed ad without watching - ending game');
+        console.log("❌ User closed ad without watching - ending game");
         // User didn't watch the ad - end game
         handleGameOver();
       }
     } else {
-      console.warn('⚠️ Rewarded ad not loaded - granting reward automatically');
+      console.warn("⚠️ Rewarded ad not loaded - granting reward automatically");
       // Ad not loaded - grant reward anyway (don't punish user for our ad system)
       continueGame();
     }
@@ -610,9 +636,13 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
     // Add pause duration to total paused time
     const pauseDuration = Date.now() - pauseStartTimeRef.current;
     pausedTimeRef.current += pauseDuration;
-    
-    console.log(`▶️ Resuming at ${currentGameTime}s - pause duration: ${Math.floor(pauseDuration / 1000)}s`);
-    
+
+    console.log(
+      `▶️ Resuming at ${currentGameTime}s - pause duration: ${Math.floor(
+        pauseDuration / 1000
+      )}s`
+    );
+
     setShowPauseModal(false);
     setIsPaused(false);
   }, [currentGameTime]);
@@ -623,20 +653,28 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
 
     // Function to resume after ad (shared logic)
     const resumeAfterAd = () => {
-      console.log("✅ Pause ad reward granted/fallback — waiting for user to click continue");
-      
+      console.log(
+        "✅ Pause ad reward granted/fallback — waiting for user to click continue"
+      );
+
       // Add ALL pause time (manual pause + ad) up to NOW
       const totalPauseDuration = Date.now() - pauseStartTimeRef.current;
       pausedTimeRef.current += totalPauseDuration;
-      
-      console.log(`⏸️ Paused after ad at ${currentGameTime}s - total pause (manual + ad): ${Math.floor(totalPauseDuration / 1000)}s`);
-      
+
+      console.log(
+        `⏸️ Paused after ad at ${currentGameTime}s - total pause (manual + ad): ${Math.floor(
+          totalPauseDuration / 1000
+        )}s`
+      );
+
       // ✅ Reset pauseStartTimeRef to track time waiting for continue button
       pauseStartTimeRef.current = Date.now();
-      
+
       // ✅ Keep isPaused=true, wait for user to click continue button
       setWaitingForFirstClick(true);
-      console.log('⏸️ Waiting for continue button click... (isPaused stays true)');
+      console.log(
+        "⏸️ Waiting for continue button click... (isPaused stays true)"
+      );
     };
 
     // Show rewarded ad if available, otherwise grant reward automatically
@@ -690,6 +728,25 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
             justifyContent: "center",
           }}
         >
+          <TouchableOpacity
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 25,
+              justifyContent: "center",
+              alignSelf: "flex-start",
+              marginTop: 24,
+              marginLeft: -24,
+            }}
+            onPress={() => navigation.goBack()}
+          >
+            <LinearGradient
+              colors={["#8E2DE2", "#4A00E0"]}
+              style={styles.backButtonGradient}
+            >
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            </LinearGradient>
+          </TouchableOpacity>
           <Text style={styles.title}>∞ ENDLESS MODE</Text>
           <Text style={styles.subtitle}>React Fast for Max Points!</Text>
 
@@ -706,7 +763,8 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
             <Text style={styles.warningTitle}>⚠️ Speed Requirement:</Text>
             <Text style={styles.warningText}>
               You must answer at least 45 questions per minute to continue
-              playing. Speed increases by 1 per minute (max 90)! Playing too slowly will end the game!
+              playing. Speed increases by 1 per minute (max 90)! Playing too
+              slowly will end the game!
             </Text>
           </View>
 
@@ -782,7 +840,9 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
                   const minuteEndTimeRelative = (currentMinute + 1) * 60000;
                   // Filter clicks - they are already in relative time
                   const currentMinuteClicks = clickTimestampsRef.current.filter(
-                    (relativeTime) => relativeTime >= minuteStartTimeRelative && relativeTime < minuteEndTimeRelative
+                    (relativeTime) =>
+                      relativeTime >= minuteStartTimeRelative &&
+                      relativeTime < minuteEndTimeRelative
                   ).length;
                   return currentMinuteClicks;
                 })()}{" "}
@@ -852,7 +912,9 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
                   onPress: handleGameOver,
                 },
                 {
-                  text: `Watch Ad & Continue (${2 - gameState.adsWatched} left)`,
+                  text: `Watch Ad & Continue (${
+                    2 - gameState.adsWatched
+                  } left)`,
                   style: "primary",
                   onPress: handleWatchAd,
                 },
@@ -902,6 +964,13 @@ const styles = StyleSheet.create({
   startContainer: {
     flex: 1,
     paddingHorizontal: 40,
+  },
+  backButtonGradient: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 24,
