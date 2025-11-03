@@ -228,8 +228,8 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
           return relativeClickTime >= minuteStartTimeRelative && relativeClickTime < minuteEndTimeRelative;
         });
         
-        // Povećavaj za 1 svaki minut, max 60
-        const minuteRequiredClicks = Math.min(30 + completedMinute, 60);
+        // Povećavaj za 1 svaki minut, počinje od 45, max 90
+        const minuteRequiredClicks = Math.min(45 + completedMinute, 90);
 
         console.log(
           `🔍 Checking minute ${completedMinute + 1} (${minuteStartTimeRelative/1000}s - ${minuteEndTimeRelative/1000}s): ${
@@ -509,83 +509,87 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
   const handleWatchAd = useCallback(async () => {
     setShowWatchAdModal(false);
     
-    // Show rewarded ad
+    // Function to continue game (shared logic)
+    const continueGame = () => {
+      // ✅ Add pause duration up to NOW (modal + ad time)
+      const pauseDurationSoFar = Date.now() - pauseStartTimeRef.current;
+      pausedTimeRef.current += pauseDurationSoFar;
+      console.log(`⏸️ AD WATCHED/FALLBACK - PAUSE TRACKING:
+        - pauseStartTime: ${new Date(pauseStartTimeRef.current).toISOString()}
+        - now: ${new Date(Date.now()).toISOString()}
+        - pauseDuration (modal+ad): ${Math.floor(pauseDurationSoFar / 1000)}s
+        - pausedTimeRef BEFORE: ${Math.floor((pausedTimeRef.current - pauseDurationSoFar) / 1000)}s
+        - pausedTimeRef AFTER: ${Math.floor(pausedTimeRef.current / 1000)}s`);
+      
+      // ✅ Reset pauseStartTimeRef to track time waiting for first click
+      pauseStartTimeRef.current = Date.now();
+      console.log(`⏸️ Reset pauseStartTimeRef for wait tracking: ${new Date(pauseStartTimeRef.current).toISOString()}`);
+      
+      // Increment ads watched counter
+      setGameState((prev) => {
+        const newAdsWatched = prev.adsWatched + 1;
+        console.log(`📺 Ads watched: ${newAdsWatched}/2`);
+        
+        return {
+          ...prev,
+          wrongAnswer: false,
+          adsWatched: newAdsWatched,
+        };
+      });
+      
+      // ✅ Keep isPaused=true, just set waitingForFirstClick
+      // Timer will resume automatically when user clicks (waitingForFirstClick becomes false)
+      setWaitingForFirstClick(true);
+      console.log('⏸️ Waiting for first click after ad... (isPaused stays true)');
+      
+      // Calculate current game time and round to seconds
+      const now = Date.now();
+      const totalElapsedTime = now - gameStartTimeRef.current;
+      const actualPlayTime = totalElapsedTime - pausedTimeRef.current;
+      const currentTimeInSeconds = Math.floor(actualPlayTime / 1000);
+      
+      console.log(`⏱️ TIME CALCULATION AFTER AD:
+        - gameStartTime: ${new Date(gameStartTimeRef.current).toISOString()}
+        - totalElapsed: ${Math.floor(totalElapsedTime / 1000)}s
+        - pausedTime: ${Math.floor(pausedTimeRef.current / 1000)}s
+        - actualPlayTime: ${currentTimeInSeconds}s`);
+
+      // Calculate which minute we're currently in
+      const currentMinute = Math.floor(currentTimeInSeconds / 60);
+
+      // Update lastCheckedMinuteRef to the current minute so we continue from here
+      lastCheckedMinuteRef.current = currentMinute;
+
+      console.log(
+        `🎬 Continuing from minute ${
+          currentMinute + 1
+        } (${currentTimeInSeconds}s). Required clicks: ${Math.min(
+          45 + currentMinute,
+          90
+        )}`
+      );
+
+      // Continue game
+      generateNewQuestion();
+    };
+    
+    // Show rewarded ad if available, otherwise grant reward automatically
     if (rewardedAdLoaded) {
       const earned = await showRewardedAd();
       
       // Check if user earned reward
       if (earned) {
         console.log('✅ User watched the ad! Continuing game...');
-        
-        // ✅ Add pause duration up to NOW (modal + ad time)
-        const pauseDurationSoFar = Date.now() - pauseStartTimeRef.current;
-        pausedTimeRef.current += pauseDurationSoFar;
-        console.log(`⏸️ AD WATCHED - PAUSE TRACKING:
-          - pauseStartTime: ${new Date(pauseStartTimeRef.current).toISOString()}
-          - now: ${new Date(Date.now()).toISOString()}
-          - pauseDuration (modal+ad): ${Math.floor(pauseDurationSoFar / 1000)}s
-          - pausedTimeRef BEFORE: ${Math.floor((pausedTimeRef.current - pauseDurationSoFar) / 1000)}s
-          - pausedTimeRef AFTER: ${Math.floor(pausedTimeRef.current / 1000)}s`);
-        
-        // ✅ Reset pauseStartTimeRef to track time waiting for first click
-        pauseStartTimeRef.current = Date.now();
-        console.log(`⏸️ Reset pauseStartTimeRef for wait tracking: ${new Date(pauseStartTimeRef.current).toISOString()}`);
-        
-        // Increment ads watched counter
-        setGameState((prev) => {
-          const newAdsWatched = prev.adsWatched + 1;
-          console.log(`📺 Ads watched: ${newAdsWatched}/2`);
-          
-          return {
-            ...prev,
-            wrongAnswer: false,
-            adsWatched: newAdsWatched,
-          };
-        });
-        
-        // ✅ Keep isPaused=true, just set waitingForFirstClick
-        // Timer will resume automatically when user clicks (waitingForFirstClick becomes false)
-        setWaitingForFirstClick(true);
-        console.log('⏸️ Waiting for first click after ad... (isPaused stays true)');
-        
-        // Calculate current game time and round to seconds
-        const now = Date.now();
-        const totalElapsedTime = now - gameStartTimeRef.current;
-        const actualPlayTime = totalElapsedTime - pausedTimeRef.current;
-        const currentTimeInSeconds = Math.floor(actualPlayTime / 1000);
-        
-        console.log(`⏱️ TIME CALCULATION AFTER AD:
-          - gameStartTime: ${new Date(gameStartTimeRef.current).toISOString()}
-          - totalElapsed: ${Math.floor(totalElapsedTime / 1000)}s
-          - pausedTime: ${Math.floor(pausedTimeRef.current / 1000)}s
-          - actualPlayTime: ${currentTimeInSeconds}s`);
-
-        // Calculate which minute we're currently in
-        const currentMinute = Math.floor(currentTimeInSeconds / 60);
-
-        // Update lastCheckedMinuteRef to the current minute so we continue from here
-        lastCheckedMinuteRef.current = currentMinute;
-
-        console.log(
-          `🎬 Continuing from minute ${
-            currentMinute + 1
-          } (${currentTimeInSeconds}s). Required clicks: ${Math.min(
-            30 + currentMinute,
-            60
-          )}`
-        );
-
-        // Continue game
-        generateNewQuestion();
+        continueGame();
       } else {
         console.log('❌ User closed ad without watching - ending game');
         // User didn't watch the ad - end game
         handleGameOver();
       }
     } else {
-      console.warn('⚠️ Rewarded ad not loaded - ending game');
-      // Ad not loaded - end game
-      handleGameOver();
+      console.warn('⚠️ Rewarded ad not loaded - granting reward automatically');
+      // Ad not loaded - grant reward anyway (don't punish user for our ad system)
+      continueGame();
     }
   }, [rewardedAdLoaded, showRewardedAd, generateNewQuestion, handleGameOver]);
 
@@ -615,18 +619,11 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
 
   // Handle watch ad from pause modal (manual pause WITH AD)
   const handlePauseWatchAd = useCallback(async () => {
-    if (!rewardedAdLoaded) {
-      console.warn("⚠️ Rewarded ad not loaded — resume anyway");
-      handleResume();
-      return;
-    }
-
     setShowPauseModal(false);
 
-    const earned = await showRewardedAd();
-
-    if (earned) {
-      console.log("✅ Pause ad reward granted — waiting for user to click continue");
+    // Function to resume after ad (shared logic)
+    const resumeAfterAd = () => {
+      console.log("✅ Pause ad reward granted/fallback — waiting for user to click continue");
       
       // Add ALL pause time (manual pause + ad) up to NOW
       const totalPauseDuration = Date.now() - pauseStartTimeRef.current;
@@ -640,13 +637,26 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
       // ✅ Keep isPaused=true, wait for user to click continue button
       setWaitingForFirstClick(true);
       console.log('⏸️ Waiting for continue button click... (isPaused stays true)');
+    };
+
+    // Show rewarded ad if available, otherwise grant reward automatically
+    if (rewardedAdLoaded) {
+      const earned = await showRewardedAd();
+
+      if (earned) {
+        resumeAfterAd();
+      } else {
+        console.log("❌ Ad closed before reward — staying paused");
+        // Reset pause start time to NOW (restart pause timer)
+        pauseStartTimeRef.current = Date.now();
+        setShowPauseModal(true);
+      }
     } else {
-      console.log("❌ Ad closed before reward — staying paused");
-      // Reset pause start time to NOW (restart pause timer)
-      pauseStartTimeRef.current = Date.now();
-      setShowPauseModal(true);
+      console.warn("⚠️ Rewarded ad not loaded — granting reward automatically");
+      // Ad not loaded - grant reward anyway (don't punish user for our ad system)
+      resumeAfterAd();
     }
-  }, [rewardedAdLoaded, showRewardedAd, handleResume, currentGameTime]);
+  }, [rewardedAdLoaded, showRewardedAd, currentGameTime]);
 
   // Animated styles
   const shakeStyle = useAnimatedStyle(() => ({
@@ -695,8 +705,8 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
 
             <Text style={styles.warningTitle}>⚠️ Speed Requirement:</Text>
             <Text style={styles.warningText}>
-              You must answer at least 30 questions per minute to continue
-              playing. Playing too slowly will end the game!
+              You must answer at least 45 questions per minute to continue
+              playing. Speed increases by 1 per minute (max 90)! Playing too slowly will end the game!
             </Text>
           </View>
 
@@ -761,7 +771,7 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
                 }
               >
                 Next 60 seconds need{" "}
-                {Math.min(30 + Math.floor(currentGameTime / 60), 60)}+ clicks
+                {Math.min(45 + Math.floor(currentGameTime / 60), 90)}+ clicks
               </Text>
               <Text style={styles.successText}>
                 Current minute:{" "}

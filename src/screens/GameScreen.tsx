@@ -67,20 +67,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
   const handleWatchAd = async () => {
     console.log('🎬 handleWatchAd called - Ad loaded:', rewardedAdLoaded);
     
-    if (!rewardedAdLoaded) {
-      console.warn('⚠️ Rewarded ad not loaded yet - Please wait...');
-      // Don't close modal, let user try again or cancel
-      return;
-    }
-
-    console.log('📺 Showing rewarded ad...');
-    const earned = await showRewardedAd();
-    
-    console.log('🎯 Ad result - Earned:', earned);
-    
-    // Check if user earned reward
-    if (earned) {
-      console.log('✅ User watched the ad! Starting game with +5s bonus...');
+    // Function to start game with bonus (shared logic)
+    const startGameWithBonus = () => {
+      console.log('✅ Starting game with +5s bonus...');
       setShowAdModal(false);
       
       // Navigate with bonus time after watching ad
@@ -95,9 +84,26 @@ export const GameScreen: React.FC<GameScreenProps> = ({ navigation, route }) => 
           bonusTime: 5,
         });
       }
+    };
+    
+    if (rewardedAdLoaded) {
+      console.log('📺 Showing rewarded ad...');
+      const earned = await showRewardedAd();
+      
+      console.log('🎯 Ad result - Earned:', earned);
+      
+      // Check if user earned reward
+      if (earned) {
+        console.log('User watched the ad!');
+        startGameWithBonus();
+      } else {
+        console.log('❌ User closed ad without watching - staying in modal');
+        // Keep modal open, let user decide to try again or cancel
+      }
     } else {
-      console.log('❌ User closed ad without watching - staying in modal');
-      // Keep modal open, let user decide to try again or cancel
+      console.warn('⚠️ Rewarded ad not loaded - granting bonus automatically');
+      // Ad not loaded - grant bonus anyway (don't punish user for our ad system)
+      startGameWithBonus();
     }
   };
 
