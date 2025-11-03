@@ -7,6 +7,7 @@ import {
   ScrollView,
   StatusBar,
   BackHandler,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -223,6 +224,68 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             isComingSoon={true}
           />
         </View>
+
+        {/* More Games & Rate Section */}
+        <View style={styles.extraSection}>
+          <Text style={styles.sectionTitle}>Explore More</Text>
+          
+          {/* More Games Button */}
+          <TouchableOpacity
+            style={styles.extraButton}
+            onPress={() => navigation.navigate('MoreGamesScreen')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#8E2DE2', '#4A00E0']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.extraButtonGradient}
+            >
+              <View style={styles.extraButtonContent}>
+                <View style={styles.extraButtonLeft}>
+                  <Text style={styles.extraButtonEmoji}>🎮</Text>
+                  <View style={styles.extraButtonTextContainer}>
+                    <Text style={styles.extraButtonTitle}>More Games</Text>
+                    <Text style={styles.extraButtonSubtitle}>
+                      Check out Memory Quest!
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Rate Our App Button */}
+          <TouchableOpacity
+            style={styles.extraButton}
+            onPress={() => {
+              const url = 'https://play.google.com/store/apps/details?id=com.vukasin93.colorrusharena&hl=en';
+              Linking.openURL(url);
+            }}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#FFD60A', '#FF8500']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.extraButtonGradient}
+            >
+              <View style={styles.extraButtonContent}>
+                <View style={styles.extraButtonLeft}>
+                  <Text style={styles.extraButtonEmoji}>⭐</Text>
+                  <View style={styles.extraButtonTextContainer}>
+                    <Text style={styles.extraButtonTitle}>Rate Our App</Text>
+                    <Text style={styles.extraButtonSubtitle}>
+                      Share your feedback!
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="star" size={24} color="#FFFFFF" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
       
       {/* Banner Ad at bottom */}
@@ -431,5 +494,51 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: "rgba(142, 45, 226, 0.3)",
+  },
+  extraSection: {
+    marginTop: 20,
+    marginBottom: 30,
+  },
+  extraButton: {
+    marginBottom: 15,
+    borderRadius: 15,
+    overflow: "hidden",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  extraButtonGradient: {
+    padding: 20,
+    borderRadius: 15,
+  },
+  extraButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  extraButtonLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  extraButtonEmoji: {
+    fontSize: 40,
+    marginRight: 15,
+  },
+  extraButtonTextContainer: {
+    flex: 1,
+  },
+  extraButtonTitle: {
+    fontSize: 18,
+    fontFamily: "Orbitron_700Bold",
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  extraButtonSubtitle: {
+    fontSize: 13,
+    fontFamily: "Orbitron_400Regular",
+    color: "rgba(255, 255, 255, 0.8)",
   },
 });

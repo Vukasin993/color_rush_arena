@@ -11,6 +11,7 @@ export type RootStackParamList = {
     continueSaved?: boolean;
   };
   ColorMatchEndlessGame: undefined;
+  MoreGamesScreen: undefined;
   GameOverScreen: {
     gameType: 'colorMatch' | 'reactionTap' | 'colorSnake' | 'memoryRush' | 'colorMatchEndless';
     level: 'easy' | 'medium' | 'hard' | 'extreme' | 'extra-hard' | 'endless' | number;
