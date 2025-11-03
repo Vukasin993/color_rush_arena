@@ -51,6 +51,7 @@ import { useGame } from '../store/useGameStore';
 import { leaderboardService, LeaderboardEntry } from '../firebase/leaderboard';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
+import { useAuthStore } from '../store/useAuthStore';
 
 
 const avatarKeys = [
@@ -121,6 +122,7 @@ interface ScoreEntry {
 export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation, route }) => {
   const { gameType } = route.params || {};
   const { colorMatchStats, colorMatchEndlessStats, memoryRushStats } = useGame();
+  const { user } = useAuthStore(); // Get Firebase user data
   const [firebaseScores, setFirebaseScores] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -128,6 +130,11 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
     gameType === 'memoryRush' ? 'memoryRush' : 'colorMatch'
   );
   const [selectedLevel, setSelectedLevel] = useState<'easy' | 'medium' | 'hard'>('easy');
+
+  // Use Firebase user stats if available, otherwise fall back to local stats
+  const currentColorMatchStats = user?.colorMatchStats || colorMatchStats;
+  const currentColorMatchEndlessStats = user?.colorMatchEndlessStats || colorMatchEndlessStats;
+  const currentMemoryRushStats = user?.memoryRushStats || memoryRushStats;
 
   
   // Fetch scores from Firebase
@@ -306,6 +313,8 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
     );
   }
 
+  console.log("colorMatchEndlessStats'< JSON.stringify(colorMatchEndlessStats)>", colorMatchEndlessStats);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1B" />
@@ -364,7 +373,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
             style={styles.statCardGradient}
           >
             <Text style={styles.statNumber}>
-              {selectedGame === 'colorMatch' ? colorMatchStats.bestScore : selectedGame === "colorMatchEndless" ? colorMatchEndlessStats.bestScore : memoryRushStats.bestScore}
+              {selectedGame === 'colorMatch' ? currentColorMatchStats.bestScore : selectedGame === "colorMatchEndless" ? currentColorMatchEndlessStats.bestScore : currentMemoryRushStats.bestScore}
             </Text>
             <Text style={styles.statLabel}>Best Score</Text>
           </LinearGradient>
@@ -376,7 +385,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ navigation
               style={styles.statCardGradient}
             >
               <Text style={styles.statNumber}>
-                {Math.round(colorMatchStats.averageScore)}
+                {Math.round(currentColorMatchStats.averageScore)}
               </Text>
               <Text style={styles.statLabel}>Average</Text>
             </LinearGradient>
