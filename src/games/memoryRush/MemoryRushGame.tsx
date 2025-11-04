@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Sentry from '@sentry/react-native';
 import {
   View,
   Text,
@@ -488,6 +489,13 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
     await AsyncStorage.removeItem(STORAGE_KEY);
     const initialSequence = generateSequence(1);
 
+    Sentry.addBreadcrumb({
+      category: 'game',
+      message: 'Memory Rush game started',
+      level: 'info',
+      data: { sequenceLength: initialSequence.length },
+    });
+
     setGameStarted(true);
     setGameState({
       sequence: initialSequence,
@@ -589,6 +597,16 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
       if (earned) {
         console.log('✅ User watched the ad! Continuing game...');
         
+        Sentry.addBreadcrumb({
+          category: 'monetization',
+          message: 'Rewarded ad watched to continue',
+          level: 'info',
+          data: { 
+            currentLevel: gameState.currentLevel,
+            adsWatched: gameState.powerUps.adsWatched + 1 
+          },
+        });
+        
         // Reset game state and replay current sequence
         setGameState((prev) => ({
           ...prev,
@@ -644,6 +662,13 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
     if (gameState.powerUps.repeatSequence > 0) {
       // Has power-ups available - use one (FREE)
       console.log('🔄 Using Repeat power-up (free)');
+      
+      Sentry.addBreadcrumb({
+        category: 'game',
+        message: 'Repeat Sequence power-up used',
+        level: 'info',
+        data: { currentLevel: gameState.currentLevel },
+      });
       
       // Sačuvaj trenutni progres pre ponovnog prikaza
       const currentProgress = gameState.playerInput;
@@ -734,6 +759,13 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
     if (gameState.powerUps.skipLevel > 0) {
       // Has power-ups available - use one (FREE)
       console.log('⏭️ Using Skip power-up (free)');
+      
+      Sentry.addBreadcrumb({
+        category: 'game',
+        message: 'Skip Level power-up used',
+        level: 'info',
+        data: { currentLevel: gameState.currentLevel },
+      });
       
       const newLevel = gameState.currentLevel + 1;
       const newSequence = generateSequence(newLevel);

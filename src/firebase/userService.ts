@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore';
 import { getAuth, signInAnonymously, onAuthStateChanged, deleteUser } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '@sentry/react-native';
 import { firestore } from './config';
 
 
@@ -268,9 +269,21 @@ class UserService {
       await this.saveUserToStorage(userProfile);
       
       console.log('✅ User created successfully:', username, 'UID:', firebaseUID);
+      
+      Sentry.addBreadcrumb({
+        category: 'user',
+        message: 'User created successfully',
+        level: 'info',
+        data: { username },
+      });
+      
       return userProfile;
     } catch (error) {
       console.error('❌ Failed to create user:', error);
+      Sentry.captureException(error, {
+        tags: { location: 'createUser' },
+        extra: { customUsername },
+      });
       throw error;
     }
   }
@@ -308,6 +321,10 @@ class UserService {
     } catch (error) {
       console.error('❌ Failed to update user profile:', error);
       console.error('❌ Update error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      Sentry.captureException(error, {
+        tags: { location: 'updateUserProfile' },
+        extra: { uid, updates },
+      });
       throw error;
     }
   }
@@ -427,9 +444,20 @@ class UserService {
       await this.updateUserProfile(uid, updates);
       
       console.log('✅ Game stats updated successfully');
+      
+      Sentry.addBreadcrumb({
+        category: 'game',
+        message: 'Game stats updated',
+        level: 'info',
+        data: { gameType, level, score, xpEarned },
+      });
     } catch (error) {
       console.error('❌ Failed to update game stats:', error);
       console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      Sentry.captureException(error, {
+        tags: { location: 'updateGameStats', gameType },
+        extra: { uid, level, score, xpEarned, highestLevel },
+      });
       throw error;
     }
   }
@@ -454,6 +482,10 @@ class UserService {
       return null;
     } catch (error) {
       console.error('❌ Failed to sync user data:', error);
+      Sentry.captureException(error, {
+        tags: { location: 'syncUserData' },
+        extra: { uid },
+      });
       return null;
     }
   }
@@ -505,8 +537,18 @@ class UserService {
       }
       
       console.log('✅ User account deleted successfully');
+      
+      Sentry.addBreadcrumb({
+        category: 'user',
+        message: 'User account deleted',
+        level: 'warning',
+      });
     } catch (error) {
       console.error('❌ Failed to delete user account:', error);
+      Sentry.captureException(error, {
+        tags: { location: 'deleteUserAccount' },
+        extra: { uid },
+      });
       throw error;
     }
   }

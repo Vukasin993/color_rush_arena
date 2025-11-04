@@ -9,8 +9,59 @@ import { NetworkGuard } from './src/components/NetworkGuard';
 import { userService } from './src/firebase/userService';
 import { useAuthStore } from './src/store/useAuthStore';
 import { initializeAdMob } from './src/services/admob';
+import * as Sentry from '@sentry/react-native';
+import Constants from 'expo-constants';
 
-export default function App() {
+Sentry.init({
+  dsn: 'https://301d9dc9647b25e3723aed92b2c32d54@o4510153580150784.ingest.de.sentry.io/4510303416025168',
+  
+  // Environment configuration
+  environment: __DEV__ ? 'development' : 'production',
+  enabled: !__DEV__, // Only send errors in production
+  
+  // Release tracking
+  release: Constants.expoConfig?.version || '1.0.0',
+  dist: Constants.expoConfig?.android?.versionCode?.toString() || '1',
+
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  sendDefaultPii: true,
+
+  // Enable Logs
+  enableLogs: true,
+
+  // Configure Session Replay (only in production)
+  replaysSessionSampleRate: __DEV__ ? 0 : 0.1,
+  replaysOnErrorSampleRate: __DEV__ ? 0 : 1.0,
+  integrations: [
+    Sentry.mobileReplayIntegration(),
+    Sentry.feedbackIntegration(),
+  ],
+
+  // Performance Monitoring
+  tracesSampleRate: __DEV__ ? 0 : 0.2, // 20% of transactions in production
+  
+  // Filter out noisy errors
+  beforeSend(event, hint) {
+    // Filter out expo development errors
+    if (__DEV__) return null;
+    
+    // Filter out network timeout errors (expected behavior)
+    const error = hint.originalException;
+    if (error && typeof error === 'object' && 'message' in error) {
+      const message = String(error.message).toLowerCase();
+      if (message.includes('network') && message.includes('timeout')) {
+        return null;
+      }
+    }
+    
+    return event;
+  },
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
+
+export default Sentry.wrap(function App() {
   const musicEnabled = useAuthStore((state) => state.musicEnabled);
   const soundRef = useRef<Audio.Sound | null>(null);
   const tracks = [
@@ -23,8 +74,27 @@ export default function App() {
 
   useEffect(() => {
     console.log('🚀 App initializing...');
-    userService.initializeAuth();
-    initializeAdMob();
+    
+    // Set Sentry context
+    Sentry.setContext('device', {
+      platform: 'mobile',
+      type: 'game',
+    });
+    
+    try {
+      userService.initializeAuth();
+      initializeAdMob();
+      Sentry.addBreadcrumb({
+        category: 'app',
+        message: 'App initialized successfully',
+        level: 'info',
+      });
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { location: 'app_initialization' },
+      });
+      console.error('App initialization error:', error);
+    }
   }, []);
 
   useEffect(() => {
@@ -91,5 +161,4 @@ export default function App() {
       </NetworkProvider>
     </ErrorBoundary>
   );
-}
-
+});
