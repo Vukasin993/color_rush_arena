@@ -19,6 +19,7 @@ import { useGame } from "../store/useGameStore";
 // import { logGameStart } from "../firebase/analytics";
 import { CustomModal } from "../components/CustomModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Sentry from '@sentry/react-native';
 import { useRewardedAd } from "../hooks/useRewardedAd";
 
 interface GameScreenProps {
@@ -107,6 +108,19 @@ export const GameScreen: React.FC<GameScreenProps> = ({
       }
     } else {
       console.warn("⚠️ Rewarded ad not loaded - granting bonus automatically");
+      
+      // Track this event in Sentry
+      Sentry.addBreadcrumb({
+        category: 'monetization',
+        message: 'Ad not available - granted bonus anyway',
+        level: 'warning',
+        data: { 
+          gameType, 
+          level: selectedLevel,
+          reason: 'no-fill or not-loaded' 
+        },
+      });
+      
       // Ad not loaded - grant bonus anyway (don't punish user for our ad system)
       startGameWithBonus();
     }
@@ -471,21 +485,35 @@ export const GameScreen: React.FC<GameScreenProps> = ({
       <CustomModal
         visible={showAdModal}
         onClose={() => setShowAdModal(false)}
-        title="🎥 Watch Ad for +5 Seconds"
-        message="Watch a short ad to get 5 extra seconds of game time! This will give you more time to achieve a higher score."
-        icon="play"
-        buttons={[
-          {
-            text: "Cancel",
-            style: "secondary",
-            onPress: () => setShowAdModal(false),
-          },
-          {
-            text: "Watch Ad",
-            style: "primary",
-            onPress: handleWatchAd,
-          },
-        ]}
+        title={rewardedAdLoaded ? "🎥 Watch Ad for +5 Seconds" : "🎁 Bonus Time!"}
+        message={
+          rewardedAdLoaded
+            ? "Watch a short ad to get 5 extra seconds of game time! This will give you more time to achieve a higher score."
+            : "Ads are temporarily unavailable, but you'll get the +5 seconds bonus anyway! Enjoy your game! 🎮"
+        }
+        icon={rewardedAdLoaded ? "play" : "gift"}
+        buttons={
+          rewardedAdLoaded
+            ? [
+                {
+                  text: "Cancel",
+                  style: "secondary",
+                  onPress: () => setShowAdModal(false),
+                },
+                {
+                  text: "Watch Ad",
+                  style: "primary",
+                  onPress: handleWatchAd,
+                },
+              ]
+            : [
+                {
+                  text: "Start with Bonus! 🚀",
+                  style: "primary",
+                  onPress: handleWatchAd,
+                },
+              ]
+        }
       />
     </SafeAreaView>
   );
