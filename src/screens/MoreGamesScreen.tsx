@@ -101,7 +101,7 @@ export const MoreGamesScreen: React.FC<MoreGamesScreenProps> = ({ navigation }) 
                 Test your memory with this challenging and addictive memory game! 
                 Match pairs of cards, beat your high score, and compete with friends.
               </Text>
-              
+
               <View style={styles.featuresContainer}>
                 <Text style={styles.featuresTitle}>Features:</Text>
                 <View style={styles.featureItem}>
@@ -153,6 +153,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F0F1B',
+    paddingBottom: 70,
   },
   loadingContainer: {
     flex: 1,

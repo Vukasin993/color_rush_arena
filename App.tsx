@@ -73,25 +73,47 @@ export default Sentry.wrap(function App() {
   const trackIndexRef = useRef(0);
 
   useEffect(() => {
-    console.log('🚀 App initializing...');
+    const version = Constants.expoConfig?.version || '1.0.0';
+    const buildNumber = Constants.expoConfig?.android?.versionCode?.toString() || 
+                        Constants.expoConfig?.ios?.buildNumber?.toString() || '1';
     
-    // Set Sentry context
+    console.log(`🚀 App initializing... Version: ${version} (Build ${buildNumber})`);
+    
+    // Set Sentry context with version info
     Sentry.setContext('device', {
       platform: 'mobile',
       type: 'game',
     });
+    
+    Sentry.setContext('app', {
+      version: version,
+      build: buildNumber,
+      environment: __DEV__ ? 'development' : 'production',
+    });
+    
+    // Set version as tag for easier filtering
+    Sentry.setTag('app_version', version);
+    Sentry.setTag('app_build', buildNumber);
     
     try {
       userService.initializeAuth();
       initializeAdMob();
       Sentry.addBreadcrumb({
         category: 'app',
-        message: 'App initialized successfully',
+        message: `App initialized successfully - v${version} (${buildNumber})`,
         level: 'info',
+        data: {
+          version,
+          build: buildNumber,
+        },
       });
     } catch (error) {
       Sentry.captureException(error, {
-        tags: { location: 'app_initialization' },
+        tags: { 
+          location: 'app_initialization',
+          version,
+          build: buildNumber,
+        },
       });
       console.error('App initialization error:', error);
     }

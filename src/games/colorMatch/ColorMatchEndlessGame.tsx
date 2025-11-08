@@ -887,17 +887,38 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
       <CustomModal
         visible={showWatchAdModal}
         onClose={() => {}}
-        title={gameState.wrongAnswer ? "Wrong Answer!" : "Playing Too Slowly!"}
-        message={
-          gameState.adsWatched >= 2
-            ? `Your Score: ${gameState.score}\n\nYou've used all your continues (2/2).\n\nGame Over!`
+        title={
+          waitingForFirstClick
+            ? "Ready to Continue!"
             : gameState.wrongAnswer
-            ? `Your Score: ${gameState.score}\n\nWatch an ad to continue playing or end the game?\n\nContinues used: ${gameState.adsWatched}/2`
-            : `Your Score: ${gameState.score}\n\nYou didn't reach the required speed!\n\nWatch ad & continue or end the game?\n\nContinues used: ${gameState.adsWatched}/2`
+            ? "Wrong Answer!"
+            : "Playing Too Slowly!"
         }
-        icon="alert-circle"
+        message={
+          waitingForFirstClick
+            ? `Your Score: ${displayScore}\n\nClick Continue to resume the game!`
+            : gameState.adsWatched >= 2
+            ? `Your Score: ${displayScore}\n\nYou've used all your continues (2/2).\n\nGame Over!`
+            : gameState.wrongAnswer
+            ? `Your Score: ${displayScore}\n\nWatch an ad to continue playing or end the game?\n\nContinues used: ${gameState.adsWatched}/2`
+            : `Your Score: ${displayScore}\n\nYou didn't reach the required speed!\n\nWatch ad & continue or end the game?\n\nContinues used: ${gameState.adsWatched}/2`
+        }
+        icon={waitingForFirstClick ? "checkmark-circle" : "alert-circle"}
         buttons={
-          gameState.adsWatched >= 2
+          waitingForFirstClick
+            ? [
+                {
+                  text: "CONTINUE GAME",
+                  style: "primary",
+                  onPress: () => {
+                    setShowWatchAdModal(false);
+                    setWaitingForFirstClick(false);
+                    setIsPaused(false);
+                    generateNewQuestion();
+                  },
+                },
+              ]
+            : gameState.adsWatched >= 2
             ? [
                 {
                   text: "End Game",

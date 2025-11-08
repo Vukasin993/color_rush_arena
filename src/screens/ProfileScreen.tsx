@@ -20,6 +20,7 @@ import {
 } from "@expo-google-fonts/orbitron";
 import { useAuth } from "../store/useAuthStore";
 import { CustomModal } from "../components/CustomModal";
+import Constants from "expo-constants";
 import Avatar1 from '../../assets/svg/1.svg';
 import Avatar2 from '../../assets/svg/2.svg';
 import Avatar3 from '../../assets/svg/3.svg';
@@ -456,6 +457,16 @@ export const ProfileScreen: React.FC = () => {
               <Text style={styles.deleteButtonText}>Delete Account</Text>
             </LinearGradient>
           </TouchableOpacity>
+
+          {/* App Version Info */}
+          <View style={styles.versionContainer}>
+            <Text style={styles.versionText}>
+              Version: {Constants.expoConfig?.version || '1.0.0'}
+            </Text>
+            <Text style={styles.versionText}>
+              Build: {Constants.expoConfig?.android?.versionCode || Constants.expoConfig?.ios?.buildNumber || '1'}
+            </Text>
+          </View>
         </View>
 
         {/* Bottom Spacing */}
@@ -744,6 +755,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Orbitron_700Bold",
     color: "#FFFFFF",
+  },
+  versionContainer: {
+    marginTop: 20,
+    alignItems: "center",
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(142, 45, 226, 0.2)",
+  },
+  versionText: {
+    fontSize: 12,
+    fontFamily: "Orbitron_400Regular",
+    color: "#6B7280",
+    marginBottom: 4,
   },
   bottomSpacing: {
     height: 20,
