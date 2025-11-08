@@ -1,0 +1,57 @@
+SENTRY USER TRACKING PATCH FOR userService.ts
+
+1. In initializeAuth() method, change onAuthStateChanged callback to async:
+
+BEFORE:
+    onAuthStateChanged(this.auth, (user) => {
+      console.log('🔄 Auth state changed:', user?.uid || 'No user');
+      if (user) {
+        console.log('✅ User is authenticated with UID:', user.uid);
+      } else {
+        console.log('❌ No authenticated user found');
+      }
+    });
+
+AFTER:
+    onAuthStateChanged(this.auth, async (user) => {
+      console.log('🔄 Auth state changed:', user?.uid || 'No user');
+      if (user) {
+        console.log('✅ User is authenticated with UID:', user.uid);
+        
+        // Get user profile to fetch username
+        const userProfile = await this.getUserFromStorage();
+        
+        // Set Sentry user context with Firebase UID and username
+        Sentry.setUser({
+          id: user.uid,
+          username: userProfile?.username || 'Unknown',
+          email: user.email || undefined,
+        });
+        
+        Sentry.addBreadcrumb({
+          category: 'auth',
+          message: 'User authenticated',
+          level: 'info',
+          data: { uid: user.uid, username: userProfile?.username },
+        });
+      } else {
+        console.log('❌ No authenticated user found');
+        // Clear Sentry user context
+        Sentry.setUser(null);
+      }
+    });
+
+2. In createUser() method, add after console.log('✅ User created successfully...'):
+
+      // Set Sentry user context with Firebase UID and username
+      Sentry.setUser({
+        id: firebaseUID,
+        username: username,
+      });
+      
+      Sentry.addBreadcrumb({
+        category: 'user',
+        message: 'User created successfully',
+        level: 'info',
+        data: { username, uid: firebaseUID },
+      });

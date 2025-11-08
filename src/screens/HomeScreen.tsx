@@ -289,9 +289,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       </ScrollView>
       
       {/* Banner Ad at bottom */}
-      <View style={styles.adContainer}>
+      {/* <View style={styles.adContainer}>
         <AdBanner />
-      </View>
+      </View> */}
       
       <CustomModal
         visible={showExitModal}

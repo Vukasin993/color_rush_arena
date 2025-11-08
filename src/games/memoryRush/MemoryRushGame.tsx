@@ -179,8 +179,6 @@ export const MemoryRushGame: React.FC<MemoryRushGameProps> = ({
     pendingSequenceDisplay: false,
   });
 
-  // ...existing code...
-
   const shakeAnimation = useRef(new Animated.Value(0)).current;
   const sequenceTimeoutRef = useRef<number | null>(null);
 

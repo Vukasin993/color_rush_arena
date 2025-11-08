@@ -195,12 +195,46 @@ class UserService {
 
     console.log('🔑 Initializing Firebase Auth listener...');
     
-    onAuthStateChanged(this.auth, (user) => {
-      console.log('� Auth state changed:', user?.uid || 'No user');
+    onAuthStateChanged(this.auth, async (user) => {
+      console.log('🔄 Auth state changed:', user?.uid || 'No user');
       if (user) {
-        console.log('✅ User is authenticated with UID:', user.uid);
+        console.log('✅ User is authenticated with Auth UID:', user.uid);
+        
+        try {
+          const userProfile = await this.getUserFromStorage();
+          
+          if (userProfile) {
+            console.log('🔍 User IDs comparison:');
+            console.log('  - Auth UID:', user.uid);
+            console.log('  - Firestore UID:', userProfile.uid);
+            console.log('  - Username:', userProfile.username);
+            
+            Sentry.setUser({
+              id: userProfile.uid, // Firestore document UID
+              username: userProfile.username,
+              email: user.email || undefined,
+            });
+            
+            Sentry.addBreadcrumb({
+              category: 'auth',
+              message: 'User authenticated',
+              level: 'info',
+              data: { 
+                firestoreUid: userProfile.uid, 
+                authUid: user.uid,
+                username: userProfile.username 
+              },
+            });
+            console.log('📤 Sentry user set with Firestore UID:', userProfile.uid);
+          } else {
+            console.warn('⚠️ User profile not found in storage');
+          }
+        } catch (error) {
+          console.error('Failed to set Sentry user:', error);
+        }
       } else {
         console.log('❌ No authenticated user found');
+        Sentry.setUser(null);
       }
     });
     
@@ -270,11 +304,17 @@ class UserService {
       
       console.log('✅ User created successfully:', username, 'UID:', firebaseUID);
       
+      // Set Sentry user context
+      Sentry.setUser({
+        id: firebaseUID,
+        username: username,
+      });
+      
       Sentry.addBreadcrumb({
         category: 'user',
         message: 'User created successfully',
         level: 'info',
-        data: { username },
+        data: { username, uid: firebaseUID },
       });
       
       return userProfile;
