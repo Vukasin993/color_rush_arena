@@ -238,8 +238,8 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
           }
         );
 
-        // Povećavaj za 1 svaki minut, počinje od 45, max 90
-        const minuteRequiredClicks = Math.min(45 + completedMinute, 90);
+        // Povećavaj za 1 svaki minut, počinje od 60, max 100
+        const minuteRequiredClicks = Math.min(60 + completedMinute, 100);
 
         console.log(
           `🔍 Checking minute ${completedMinute + 1} (${
@@ -590,8 +590,8 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
         `🎬 Continuing from minute ${
           currentMinute + 1
         } (${currentTimeInSeconds}s). Required clicks: ${Math.min(
-          45 + currentMinute,
-          90
+          60 + currentMinute,
+          100
         )}`
       );
 
@@ -762,8 +762,8 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
 
             <Text style={styles.warningTitle}>⚠️ Speed Requirement:</Text>
             <Text style={styles.warningText}>
-              You must answer at least 45 questions per minute to continue
-              playing. Speed increases by 1 per minute (max 90)! Playing too
+              You must answer at least 60 questions per minute to continue
+              playing. Speed increases by 1 per minute (max 100)! Playing too
               slowly will end the game!
             </Text>
           </View>
@@ -829,7 +829,7 @@ export const ColorMatchEndlessGame: React.FC<ColorMatchEndlessGameProps> = ({
                 }
               >
                 Next 60 seconds need{" "}
-                {Math.min(45 + Math.floor(currentGameTime / 60), 90)}+ clicks
+                {Math.min(60 + Math.floor(currentGameTime / 60), 100)}+ clicks
               </Text>
               <Text style={styles.successText}>
                 Current minute:{" "}
